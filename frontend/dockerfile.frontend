@@ -1,0 +1,33 @@
+#dockerfile.frontend
+FROM python:slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev gcc && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy and install Python dependencies
+COPY ./requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the application code into the working directory
+COPY ./app.py ./app.py
+COPY ./templates ./templates
+COPY ./static ./static
+
+# Expose Flask app port 5001 to internal Docker network
+EXPOSE 5001
+
+# Set environment variables for Flask
+ENV FLASK_APP=app.py
+ENV FLASK_ENV=production
+
+# Run the Flask application
+CMD ["python", "app.py"]

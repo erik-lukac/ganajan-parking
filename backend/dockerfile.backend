@@ -1,0 +1,20 @@
+# Use the official slim Python image
+FROM python:slim
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy the requirements.txt file from the backend folder into the container
+COPY requirements.txt .
+
+# Install the Python dependencies from the requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy only the webhooks.py file from the backend folder into the container
+COPY webhooks.py .
+
+# Expose Flask app port (5000 for the backend)
+EXPOSE 5000
+
+# Run the Flask app (assuming webhooks.py is the entry point)
+CMD ["python", "webhooks.py"]
