@@ -885,3 +885,158 @@ TypeError: Object of type Undefined is not JSON serializable
 2024-11-22 05:02:17,686 - INFO - Database connection established successfully.
 2024-11-22 05:02:17,714 - INFO - 172.18.0.4 - - [22/Nov/2024 05:02:17] "POST / HTTP/1.0" 200 -
 2024-11-22 05:02:17,779 - INFO - 172.18.0.4 - - [22/Nov/2024 05:02:17] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 07:36:06,460 - INFO - Database connection established successfully.
+2024-11-22 07:36:06,498 - INFO - 172.18.0.4 - - [22/Nov/2024 07:36:06] "GET / HTTP/1.0" 200 -
+2024-11-22 07:36:07,165 - INFO - 172.18.0.4 - - [22/Nov/2024 07:36:07] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 07:36:10,260 - INFO - Database connection established successfully.
+2024-11-22 07:36:10,277 - INFO - Fetched statistics from 2024-11-21 to 2024-11-21
+2024-11-22 07:36:10,278 - INFO - 172.18.0.4 - - [22/Nov/2024 07:36:10] "GET /statistics HTTP/1.0" 200 -
+2024-11-22 07:36:10,634 - INFO - 172.18.0.4 - - [22/Nov/2024 07:36:10] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 07:36:13,419 - INFO - Database connection established successfully.
+2024-11-22 07:36:13,442 - INFO - 172.18.0.4 - - [22/Nov/2024 07:36:13] "GET / HTTP/1.0" 200 -
+2024-11-22 07:36:13,744 - INFO - 172.18.0.4 - - [22/Nov/2024 07:36:13] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:10:10,593 - INFO - Database connection established successfully.
+2024-11-22 08:10:10,625 - INFO - 172.18.0.4 - - [22/Nov/2024 08:10:10] "POST / HTTP/1.0" 200 -
+2024-11-22 08:10:10,853 - INFO - 172.18.0.4 - - [22/Nov/2024 08:10:10] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:10:15,222 - INFO - Database connection established successfully.
+2024-11-22 08:10:15,251 - INFO - Fetched statistics from 2024-11-04 to 2024-11-21
+2024-11-22 08:10:15,253 - INFO - 172.18.0.4 - - [22/Nov/2024 08:10:15] "GET /statistics HTTP/1.0" 200 -
+2024-11-22 08:10:15,287 - INFO - 172.18.0.4 - - [22/Nov/2024 08:10:15] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:10:15,314 - INFO - 172.18.0.4 - - [22/Nov/2024 08:10:15] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:10:16,795 - INFO - Database connection established successfully.
+2024-11-22 08:10:16,824 - INFO - 172.18.0.4 - - [22/Nov/2024 08:10:16] "GET / HTTP/1.0" 200 -
+2024-11-22 08:10:16,860 - INFO - 172.18.0.4 - - [22/Nov/2024 08:10:16] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:10:16,911 - INFO - 172.18.0.4 - - [22/Nov/2024 08:10:16] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:10:26,575 - INFO - Database connection established successfully.
+2024-11-22 08:10:26,609 - INFO - 172.18.0.4 - - [22/Nov/2024 08:10:26] "POST / HTTP/1.0" 200 -
+2024-11-22 08:10:26,670 - INFO - 172.18.0.4 - - [22/Nov/2024 08:10:26] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:10:52,530 - INFO - Database connection established successfully.
+2024-11-22 08:10:52,561 - INFO - 172.18.0.4 - - [22/Nov/2024 08:10:52] "POST / HTTP/1.0" 200 -
+2024-11-22 08:10:52,649 - INFO - 172.18.0.4 - - [22/Nov/2024 08:10:52] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:11:14,665 - INFO - Database connection established successfully.
+2024-11-22 08:11:14,690 - INFO - 172.18.0.4 - - [22/Nov/2024 08:11:14] "GET / HTTP/1.0" 200 -
+2024-11-22 08:11:16,557 - INFO - 172.18.0.4 - - [22/Nov/2024 08:11:16] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:11:24,403 - INFO - Database connection established successfully.
+2024-11-22 08:11:24,434 - INFO - 172.18.0.4 - - [22/Nov/2024 08:11:24] "POST / HTTP/1.0" 200 -
+2024-11-22 08:11:24,735 - INFO - 172.18.0.4 - - [22/Nov/2024 08:11:24] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:11:31,335 - INFO - Database connection established successfully.
+2024-11-22 08:11:31,371 - INFO - Fetched statistics from 2024-11-04 to 2024-11-22
+2024-11-22 08:11:31,373 - INFO - 172.18.0.4 - - [22/Nov/2024 08:11:31] "GET /statistics HTTP/1.0" 200 -
+2024-11-22 08:11:31,409 - INFO - 172.18.0.4 - - [22/Nov/2024 08:11:31] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:11:31,481 - INFO - 172.18.0.4 - - [22/Nov/2024 08:11:31] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:11:36,143 - INFO - Database connection established successfully.
+2024-11-22 08:11:36,184 - INFO - Fetched statistics from 2024-11-01 to 2024-11-21
+2024-11-22 08:11:36,186 - INFO - 172.18.0.4 - - [22/Nov/2024 08:11:36] "GET /statistics HTTP/1.0" 200 -
+2024-11-22 08:11:36,490 - INFO - 172.18.0.4 - - [22/Nov/2024 08:11:36] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:11:38,833 - INFO - 172.18.0.4 - - [22/Nov/2024 08:11:38] "GET /search HTTP/1.0" 200 -
+2024-11-22 08:11:39,139 - INFO - 172.18.0.4 - - [22/Nov/2024 08:11:39] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:11:39,881 - INFO - 172.18.0.4 - - [22/Nov/2024 08:11:39] "GET /search HTTP/1.0" 200 -
+2024-11-22 08:11:39,916 - INFO - 172.18.0.4 - - [22/Nov/2024 08:11:39] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:11:39,966 - INFO - 172.18.0.4 - - [22/Nov/2024 08:11:39] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:11:39,985 - INFO - Database connection established successfully.
+2024-11-22 08:11:40,015 - INFO - 172.18.0.4 - - [22/Nov/2024 08:11:40] "GET / HTTP/1.0" 200 -
+2024-11-22 08:11:40,314 - INFO - 172.18.0.4 - - [22/Nov/2024 08:11:40] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:11:43,882 - INFO - Database connection established successfully.
+2024-11-22 08:11:43,888 - INFO - Search results for 2343: []
+2024-11-22 08:11:43,889 - INFO - 172.18.0.4 - - [22/Nov/2024 08:11:43] "POST /search HTTP/1.0" 200 -
+2024-11-22 08:11:43,969 - INFO - 172.18.0.4 - - [22/Nov/2024 08:11:43] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:11:45,645 - INFO - Database connection established successfully.
+2024-11-22 08:11:45,669 - INFO - 172.18.0.4 - - [22/Nov/2024 08:11:45] "POST / HTTP/1.0" 200 -
+2024-11-22 08:11:45,959 - INFO - 172.18.0.4 - - [22/Nov/2024 08:11:45] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:11:52,848 - INFO - Database connection established successfully.
+2024-11-22 08:11:52,873 - INFO - 172.18.0.4 - - [22/Nov/2024 08:11:52] "POST / HTTP/1.0" 200 -
+2024-11-22 08:11:53,175 - INFO - 172.18.0.4 - - [22/Nov/2024 08:11:53] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:12:03,600 - INFO - Database connection established successfully.
+2024-11-22 08:12:03,627 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:03] "POST / HTTP/1.0" 200 -
+2024-11-22 08:12:03,986 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:03] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:12:09,302 - WARNING - No license plate provided in search.
+2024-11-22 08:12:09,303 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:09] "POST /search HTTP/1.0" 200 -
+2024-11-22 08:12:09,385 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:09] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:12:14,860 - INFO - Database connection established successfully.
+2024-11-22 08:12:14,888 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:14] "POST / HTTP/1.0" 200 -
+2024-11-22 08:12:15,175 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:15] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:12:15,325 - WARNING - No license plate provided in search.
+2024-11-22 08:12:15,326 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:15] "POST /search HTTP/1.0" 200 -
+2024-11-22 08:12:15,383 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:15] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:12:20,752 - INFO - Database connection established successfully.
+2024-11-22 08:12:20,773 - INFO - Fetched statistics from 2024-11-20 to 2024-11-21
+2024-11-22 08:12:20,775 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:20] "GET /statistics HTTP/1.0" 200 -
+2024-11-22 08:12:21,105 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:21] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:12:24,183 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:24] "GET /search HTTP/1.0" 200 -
+2024-11-22 08:12:24,484 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:24] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:12:26,354 - INFO - Database connection established successfully.
+2024-11-22 08:12:26,379 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:26] "GET / HTTP/1.0" 200 -
+2024-11-22 08:12:26,706 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:26] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:12:27,011 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:27] "GET /search HTTP/1.0" 200 -
+2024-11-22 08:12:27,046 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:27] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:12:27,072 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:27] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:12:33,038 - INFO - Database connection established successfully.
+2024-11-22 08:12:33,072 - INFO - Fetched statistics from 2024-11-04 to 2024-11-22
+2024-11-22 08:12:33,074 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:33] "GET /statistics HTTP/1.0" 200 -
+2024-11-22 08:12:33,108 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:33] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:12:33,135 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:33] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:12:33,773 - INFO - Database connection established successfully.
+2024-11-22 08:12:33,802 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:33] "GET / HTTP/1.0" 200 -
+2024-11-22 08:12:33,835 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:33] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:12:33,888 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:33] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:12:54,516 - INFO - Database connection established successfully.
+2024-11-22 08:12:54,533 - INFO - Fetched statistics from 2024-11-20 to 2024-11-21
+2024-11-22 08:12:54,534 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:54] "GET /statistics HTTP/1.0" 200 -
+2024-11-22 08:12:54,842 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:54] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:12:59,181 - INFO - Database connection established successfully.
+2024-11-22 08:12:59,209 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:59] "GET / HTTP/1.0" 200 -
+2024-11-22 08:12:59,550 - INFO - 172.18.0.4 - - [22/Nov/2024 08:12:59] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:14:16,893 - INFO - 172.18.0.4 - - [22/Nov/2024 08:14:16] "GET /search HTTP/1.0" 200 -
+2024-11-22 08:14:17,216 - INFO - 172.18.0.4 - - [22/Nov/2024 08:14:17] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:14:19,570 - INFO - Database connection established successfully.
+2024-11-22 08:14:19,596 - INFO - 172.18.0.4 - - [22/Nov/2024 08:14:19] "GET / HTTP/1.0" 200 -
+2024-11-22 08:14:19,960 - INFO - 172.18.0.4 - - [22/Nov/2024 08:14:19] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:15:39,981 - INFO - Database connection established successfully.
+2024-11-22 08:15:39,998 - INFO - Fetched statistics from 2024-11-20 to 2024-11-21
+2024-11-22 08:15:39,999 - INFO - 172.18.0.4 - - [22/Nov/2024 08:15:39] "GET /statistics HTTP/1.0" 200 -
+2024-11-22 08:15:40,354 - INFO - 172.18.0.4 - - [22/Nov/2024 08:15:40] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:15:46,750 - INFO - 172.18.0.4 - - [22/Nov/2024 08:15:46] "GET /search HTTP/1.0" 200 -
+2024-11-22 08:15:47,122 - INFO - 172.18.0.4 - - [22/Nov/2024 08:15:47] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 08:15:51,489 - INFO - Database connection established successfully.
+2024-11-22 08:15:51,516 - INFO - 172.18.0.4 - - [22/Nov/2024 08:15:51] "GET / HTTP/1.0" 200 -
+2024-11-22 08:15:51,816 - INFO - 172.18.0.4 - - [22/Nov/2024 08:15:51] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 09:19:59,881 - INFO - Database connection established successfully.
+2024-11-22 09:19:59,915 - INFO - 172.18.0.4 - - [22/Nov/2024 09:19:59] "GET / HTTP/1.0" 200 -
+2024-11-22 09:20:00,015 - INFO - 172.18.0.4 - - [22/Nov/2024 09:20:00] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 09:20:03,272 - INFO - Database connection established successfully.
+2024-11-22 09:20:03,305 - INFO - 172.18.0.4 - - [22/Nov/2024 09:20:03] "POST / HTTP/1.0" 200 -
+2024-11-22 09:20:03,391 - INFO - 172.18.0.4 - - [22/Nov/2024 09:20:03] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 09:20:08,694 - INFO - Database connection established successfully.
+2024-11-22 09:20:08,728 - INFO - 172.18.0.4 - - [22/Nov/2024 09:20:08] "POST / HTTP/1.0" 200 -
+2024-11-22 09:20:08,819 - INFO - 172.18.0.4 - - [22/Nov/2024 09:20:08] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 09:20:12,820 - INFO - Database connection established successfully.
+2024-11-22 09:20:12,853 - INFO - 172.18.0.4 - - [22/Nov/2024 09:20:12] "POST / HTTP/1.0" 200 -
+2024-11-22 09:20:12,943 - INFO - 172.18.0.4 - - [22/Nov/2024 09:20:12] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 09:51:56,654 - INFO - Database connection established successfully.
+2024-11-22 09:51:56,702 - INFO - 172.18.0.4 - - [22/Nov/2024 09:51:56] "POST / HTTP/1.0" 200 -
+2024-11-22 09:51:56,813 - INFO - 172.18.0.4 - - [22/Nov/2024 09:51:56] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 09:52:03,864 - INFO - Database connection established successfully.
+2024-11-22 09:52:03,912 - INFO - 172.18.0.4 - - [22/Nov/2024 09:52:03] "POST / HTTP/1.0" 200 -
+2024-11-22 09:52:04,009 - INFO - 172.18.0.4 - - [22/Nov/2024 09:52:04] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 09:52:05,750 - INFO - Database connection established successfully.
+2024-11-22 09:52:05,786 - INFO - 172.18.0.4 - - [22/Nov/2024 09:52:05] "POST / HTTP/1.0" 200 -
+2024-11-22 09:52:05,850 - INFO - 172.18.0.4 - - [22/Nov/2024 09:52:05] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 10:01:45,139 - INFO - Database connection established successfully.
+2024-11-22 10:01:45,172 - INFO - 172.18.0.4 - - [22/Nov/2024 10:01:45] "POST / HTTP/1.0" 200 -
+2024-11-22 10:01:45,257 - INFO - 172.18.0.4 - - [22/Nov/2024 10:01:45] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 10:06:16,078 - INFO - Database connection established successfully.
+2024-11-22 10:06:16,111 - INFO - 172.18.0.4 - - [22/Nov/2024 10:06:16] "POST / HTTP/1.0" 200 -
+2024-11-22 10:06:16,203 - INFO - 172.18.0.4 - - [22/Nov/2024 10:06:16] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 10:10:03,652 - INFO - Database connection established successfully.
+2024-11-22 10:10:03,691 - INFO - Fetched statistics from 2024-11-04 to 2024-11-23
+2024-11-22 10:10:03,693 - INFO - 172.18.0.4 - - [22/Nov/2024 10:10:03] "GET /statistics HTTP/1.0" 200 -
+2024-11-22 10:10:03,731 - INFO - 172.18.0.4 - - [22/Nov/2024 10:10:03] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 10:10:03,795 - INFO - 172.18.0.4 - - [22/Nov/2024 10:10:03] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 12:25:55,471 - INFO - Database connection established successfully.
+2024-11-22 12:25:55,530 - INFO - Fetched statistics from 2024-11-04 to 2024-11-23
+2024-11-22 12:25:55,538 - INFO - 172.18.0.6 - - [22/Nov/2024 12:25:55] "GET /statistics HTTP/1.0" 200 -
+2024-11-22 12:25:55,688 - INFO - 172.18.0.6 - - [22/Nov/2024 12:25:55] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 12:25:59,744 - INFO - Database connection established successfully.
+2024-11-22 12:25:59,784 - INFO - 172.18.0.6 - - [22/Nov/2024 12:25:59] "GET / HTTP/1.0" 200 -
+2024-11-22 12:25:59,819 - INFO - 172.18.0.6 - - [22/Nov/2024 12:25:59] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-11-22 12:25:59,874 - INFO - 172.18.0.6 - - [22/Nov/2024 12:25:59] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -

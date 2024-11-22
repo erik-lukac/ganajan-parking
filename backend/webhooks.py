@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from datetime import datetime, timezone
+from typing import List, Optional
 import psycopg2
 from psycopg2.extras import execute_values
 import logging
@@ -10,9 +11,15 @@ import os
 
 app = Flask(__name__)
 
-# CSV EXPORT OF RAW WEBHOOS FOR DEBUGGING
-debug_csv = False  # Enable or disable raw JSON logging to CSV
-csv_file_path = "/app/backend/webhook_debug.csv"  # Path to the CSV file, ensuring it's in the backend folder
+# SETTINGS
+# All configuration settings are grouped together under this section.
+
+# Toggle to enable or disable logging of full incoming data
+LOG_INCOMING_DATA = False  # Set to True to log incoming JSON data
+
+# CSV EXPORT OF RAW WEBHOOKS FOR DEBUGGING
+DEBUG_CSV = False  # Enable or disable raw JSON logging to CSV
+CSV_FILE_PATH = "/app/backend/webhook_debug.csv"  # Path to the CSV file, ensuring it's in the backend folder
 
 # PostgreSQL settings
 DB_SETTINGS = {
@@ -25,7 +32,7 @@ DB_SETTINGS = {
 POSTGRES_TABLE = "parking"
 
 # In-memory storage for logged IDs
-logged_ids = {
+LOGGED_IDS = {
     "ganajan_car_in": set(),
     "ganajan_car_out": set(),
     "ganajan_bike_in": set(),
@@ -91,30 +98,30 @@ logging.getLogger().addFilter(PrefixFilter())
 
 def ensure_csv_file_exists():
     """Ensure the CSV file exists, creating it if necessary."""
-    if not os.path.exists(csv_file_path):
+    if not os.path.exists(CSV_FILE_PATH):
         try:
-            os.makedirs(os.path.dirname(csv_file_path), exist_ok=True)
-            with open(csv_file_path, mode="w", newline="") as csvfile:
+            os.makedirs(os.path.dirname(CSV_FILE_PATH), exist_ok=True)
+            with open(CSV_FILE_PATH, mode="w", newline="") as csvfile:
                 csv_writer = csv.writer(csvfile)
                 # Write header row
                 csv_writer.writerow(["webhook", "raw_json"])
-            log_with_prefix(logging.INFO, "CSV_LOG ", f"CSV file created at {csv_file_path}")
+            log_with_prefix(logging.INFO, "CSV_LOG ", f"CSV file created at {CSV_FILE_PATH}")
         except Exception as e:
             log_with_prefix(logging.ERROR, "CSV_LOG ", f"Failed to create CSV file: {e}")
 
 def write_json_to_csv(webhook_uri, raw_json):
     """Write raw JSON payload to a CSV file."""
-    if not debug_csv:
+    if not DEBUG_CSV:
         return
 
     ensure_csv_file_exists()  # Ensure file exists before writing
 
     try:
-        with open(csv_file_path, mode="a", newline="") as csvfile:
+        with open(CSV_FILE_PATH, mode="a", newline="") as csvfile:
             csv_writer = csv.writer(csvfile)
             # Write one line per webhook: webhook name and raw JSON as a string
             csv_writer.writerow([webhook_uri, json.dumps(raw_json)])
-        log_with_prefix(logging.INFO, "CSV_LOG ", f"Raw JSON written to {csv_file_path}")
+        log_with_prefix(logging.INFO, "CSV_LOG ", f"Raw JSON written to {CSV_FILE_PATH}")
     except Exception as e:
         log_with_prefix(logging.ERROR, "CSV_LOG ", f"Failed to write JSON to CSV: {e}")
 
@@ -122,14 +129,20 @@ def get_db_connection():
     """Establish a connection to the PostgreSQL database."""
     return psycopg2.connect(**DB_SETTINGS)
 
-def parse_timestamp(timestamp_ms):
+def parse_timestamp(timestamp_ms: Optional[str]) -> datetime:
     """Convert timestamp from milliseconds to a datetime object with UTC timezone."""
     try:
-        return datetime.fromtimestamp(int(timestamp_ms) / 1000, tz=timezone.utc)
-    except (ValueError, TypeError):
-        return datetime.now(tz=timezone.utc)
+        log_with_prefix(logging.DEBUG, "DEBUG   ", f"Raw timestamp_ms: {timestamp_ms}")
+        # Convert milliseconds to seconds and then to a datetime object
+        parsed_time = datetime.fromtimestamp(int(timestamp_ms) / 1000, tz=timezone.utc)
+        log_with_prefix(logging.DEBUG, "DEBUG   ", f"Parsed timestamp: {parsed_time}")
+        return parsed_time
+    except (ValueError, TypeError) as e:
+        log_with_prefix(logging.ERROR, "DEBUG   ", f"Timestamp parsing error: {e}")
+        # Returning None indicates a failed conversion; the caller can handle this.
+        return None
 
-def insert_data_to_db(records):
+def insert_data_to_db(records: List[tuple]):
     """Insert records into the PostgreSQL database."""
     query = f"""
     INSERT INTO {POSTGRES_TABLE}
@@ -145,28 +158,67 @@ def insert_data_to_db(records):
     except Exception as e:
         log_with_prefix(logging.ERROR, "DB_HAND ", f"Database insertion failed: {e}")
 
-def log_filtered_data(webhook_name, webhook_uri, data):
-    """Extract, log, and store only new IDs from the received webhook data."""
-    new_count = 0
-    already_received_count = 0
-    rows = data.get('data', {}).get('data', [])
-    headers = data.get('data', {}).get('header', [])
-    cube_id = data.get('cube_id', 'N/A')
-    name = data.get('name', webhook_name)
+def log_filtered_data(webhook_name: str, webhook_uri: str, data: dict):
+    """Process and store new vehicle data from the webhook."""
+    webhook_data = validate_webhook_data(data, webhook_uri)
+    if not webhook_data:
+        return
 
-    records = [dict(zip(headers, row)) for row in rows if len(row) >= len(headers)]
+    new_entries, inserted_ids = process_new_entries(webhook_data, webhook_uri, webhook_name)
+    insert_new_entries(new_entries)
+
+    # Log expanded data
+    total_vehicles = len(webhook_data.get('data', {}).get('data', []))
+    existing_count = total_vehicles - len(new_entries)
+    log_with_prefix(
+        logging.DEBUG,
+        "DATA_PRO",
+        f"{webhook_uri} - Total Vehicles: {total_vehicles}, New: {len(new_entries)}, Existing: {existing_count}. Inserted IDs: {json.dumps(inserted_ids)}"
+    )
+
+def validate_webhook_data(data: dict, webhook_uri: str) -> Optional[dict]:
+    """Validate and parse incoming webhook data."""
+    try:
+        if 'data' not in data or 'data' not in data['data']:
+            raise ValueError("Missing 'data' key in the incoming JSON data")
+        return data
+    except Exception as e:
+        log_with_prefix(logging.ERROR, "DATA_VAL", f"{webhook_uri} - Data validation failed: {e}")
+        return None
+
+def process_new_entries(webhook_data: dict, webhook_uri: str, webhook_name: str) -> (List[tuple], List[str]):
+    """Process new vehicle entries and prepare them for database insertion."""
     new_entries = []
-    inserted_ids = []  # Collect inserted IDs for log expansion
+    inserted_ids_with_timestamps = []
+    cube_id = webhook_data.get('cube_id', 'N/A')
+    name = webhook_data.get('name', webhook_name)
 
-    for record in records:
-        insertion_id = record.get("ID", "N/A")
-        if insertion_id not in logged_ids[webhook_uri]:
-            logged_ids[webhook_uri].add(insertion_id)
-            license_plate = record.get("License plate", "-")
-            category = record.get("Category", "N/A")
-            color = record.get("Color", "N/A")
-            timestamp_ms = record.get("Trajectory end", None)
+    headers = webhook_data['data'].get('header', [])
+    rows = webhook_data['data'].get('data', [])
+
+    for row in rows:
+        vehicle = dict(zip(headers, row))
+        insertion_id = vehicle.get('ID', 'N/A')
+
+        if insertion_id not in LOGGED_IDS[webhook_uri]:
+            LOGGED_IDS[webhook_uri].add(insertion_id)
+
+            # Debug: Log raw vehicle data
+            log_with_prefix(logging.DEBUG, "DEBUG   ", f"Processing vehicle: {vehicle}")
+
+            license_plate = vehicle.get('License plate', '-')
+            category = vehicle.get('Category', 'N/A')
+            color = vehicle.get('Color', 'N/A')
+            timestamp_ms = vehicle.get('Trajectory end', None)
+
+            # Parse and verify the timestamp
             timestamp = parse_timestamp(timestamp_ms)
+            if not timestamp:
+                continue  # Skip this entry if the timestamp is invalid
+
+            # Format the parsed timestamp as 'ddMMM HH:MM'
+            formatted_timestamp = timestamp.strftime("%d%b %H:%M")
+
             gate = webhook_uri
             zone = cube_id
             description = name
@@ -180,47 +232,80 @@ def log_filtered_data(webhook_name, webhook_uri, data):
                 zone,
                 description
             ))
-            inserted_ids.append(insertion_id)
-            new_count += 1
-        else:
-            already_received_count += 1
 
+            # Append the formatted timestamp to the ID for logging
+            inserted_ids_with_timestamps.append(f"{insertion_id} {formatted_timestamp}")
+
+    return new_entries, inserted_ids_with_timestamps
+
+def insert_new_entries(new_entries: List[tuple]):
+    """Insert new entries into the database if any."""
     if new_entries:
         insert_data_to_db(new_entries)
 
-    # Log expanded data
-    log_with_prefix(
-        logging.DEBUG,
-        "DATA_PRO",
-        f"{webhook_uri} - New: {new_count}, Existing: {already_received_count}. Inserted IDs: {json.dumps(inserted_ids)}"
-    )
+# Webhook endpoints
+
+import pprint  # Import pprint for pretty-printing JSON data
+
+@app.route('/webhooks/ganajan_bike_in', methods=['POST'])
+def ganajan_bike_in():
+    data = request.get_json()
+    if data is None:
+        log_with_prefix(logging.ERROR, "WEBHOOK ", "No JSON data received")
+        return jsonify({"status": "error", "message": "No JSON data received"}), 400
+
+    vehicles_count = len(data.get('data', {}).get('data', []))
+    log_with_prefix(logging.DEBUG, "WEBHOOK ", f"ganajan_bike_in endpoint called with {vehicles_count} vehicles")
+
+    # Log the incoming data only if LOG_INCOMING_DATA is enabled
+    if LOG_INCOMING_DATA:
+        import pprint
+        log_with_prefix(logging.DEBUG, "WEBHOOK ", f"Incoming data:\n{pprint.pformat(data)}")
+
+    write_json_to_csv("ganajan_bike_in", data)  # Write raw JSON to CSV
+    log_filtered_data("Bike In", "ganajan_bike_in", data)
+    return jsonify({"status": "bike_in_received"}), 200
 
 @app.route('/webhooks/ganajan_car_in', methods=['POST'])
 def ganajan_car_in():
-    log_with_prefix(logging.DEBUG, "WEBHOOK ", "ganajan_car_in endpoint called")
-    write_json_to_csv("ganajan_car_in", request.json)  # Write raw JSON to CSV
-    log_filtered_data("Car In", "ganajan_car_in", request.json)
+    data = request.get_json()
+    if data is None:
+        log_with_prefix(logging.ERROR, "WEBHOOK ", "No JSON data received")
+        return jsonify({"status": "error", "message": "No JSON data received"}), 400
+
+    vehicles_count = len(data.get('data', {}).get('data', []))
+    log_with_prefix(logging.DEBUG, "WEBHOOK ", f"ganajan_car_in endpoint called with {vehicles_count} vehicles")
+
+    write_json_to_csv("ganajan_car_in", data)  # Write raw JSON to CSV
+    log_filtered_data("Car In", "ganajan_car_in", data)
     return jsonify({"status": "car_in_received"}), 200
 
 @app.route('/webhooks/ganajan_car_out', methods=['POST'])
 def ganajan_car_out():
-    log_with_prefix(logging.DEBUG, "WEBHOOK ", "ganajan_car_out endpoint called")
-    write_json_to_csv("ganajan_car_out", request.json)  # Write raw JSON to CSV
-    log_filtered_data("Car Out", "ganajan_car_out", request.json)
-    return jsonify({"status": "car_out_received"}), 200
+    data = request.get_json()
+    if data is None:
+        log_with_prefix(logging.ERROR, "WEBHOOK ", "No JSON data received")
+        return jsonify({"status": "error", "message": "No JSON data received"}), 400
 
-@app.route('/webhooks/ganajan_bike_in', methods=['POST'])
-def ganajan_bike_in():
-    log_with_prefix(logging.DEBUG, "WEBHOOK ", "ganajan_bike_in endpoint called")
-    write_json_to_csv("ganajan_bike_in", request.json)  # Write raw JSON to CSV
-    log_filtered_data("Bike In", "ganajan_bike_in", request.json)
-    return jsonify({"status": "bike_in_received"}), 200
+    vehicles_count = len(data.get('data', {}).get('data', []))
+    log_with_prefix(logging.DEBUG, "WEBHOOK ", f"ganajan_car_out endpoint called with {vehicles_count} vehicles")
+
+    write_json_to_csv("ganajan_car_out", data)  # Write raw JSON to CSV
+    log_filtered_data("Car Out", "ganajan_car_out", data)
+    return jsonify({"status": "car_out_received"}), 200
 
 @app.route('/webhooks/ganajan_bike_out', methods=['POST'])
 def ganajan_bike_out():
-    log_with_prefix(logging.DEBUG, "WEBHOOK ", "ganajan_bike_out endpoint called")
-    write_json_to_csv("ganajan_bike_out", request.json)  # Write raw JSON to CSV
-    log_filtered_data("Bike Out", "ganajan_bike_out", request.json)
+    data = request.get_json()
+    if data is None:
+        log_with_prefix(logging.ERROR, "WEBHOOK ", "No JSON data received")
+        return jsonify({"status": "error", "message": "No JSON data received"}), 400
+
+    vehicles_count = len(data.get('data', {}).get('data', []))
+    log_with_prefix(logging.DEBUG, "WEBHOOK ", f"ganajan_bike_out endpoint called with {vehicles_count} vehicles")
+
+    write_json_to_csv("ganajan_bike_out", data)  # Write raw JSON to CSV
+    log_filtered_data("Bike Out", "ganajan_bike_out", data)
     return jsonify({"status": "bike_out_received"}), 200
 
 if __name__ == '__main__':

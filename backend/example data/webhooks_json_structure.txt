@@ -1,0 +1,43 @@
+{
+  "AnalyticID": "",
+  "BlockName": "",
+  "CubeID": "",
+  "DataSet": {
+    "Header": [],
+    "Vehicles": [
+      {
+        "ID": "",
+        "License plate": "",
+        "Category": "",
+        "Color": "",
+        "Trajectory": {
+          "Start": "",
+          "End": ""
+        },
+        "Speed": {
+          "Average": "",
+          "Minimum": "",
+          "Maximum": "",
+          "Section": ""
+        },
+        "Average acceleration": "",
+        "Gap": {
+          "Time": "",
+          "Distance": ""
+        },
+        "Duration of occurrence": "",
+        "Stationary duration": "",
+        "Last position": {
+          "X": "",
+          "Y": ""
+        },
+        "Last bounding box": {
+          "X": "",
+          "Y": "",
+          "Width": "",
+          "Height": ""
+        }
+      }
+    ]
+  }
+}
