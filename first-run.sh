@@ -4,11 +4,11 @@
 
 ### DATABASE CONFIGURATION ###
 POSTGRES_HOST="localhost"
-POSTGRES_PORT=5444
-POSTGRES_DBNAME="flow"
-POSTGRES_USER="flowerist"
-POSTGRES_PASSWORD="password"
-POSTGRES_TABLE="parking"  # Updated table name from database configuration
+POSTGRES_PORT=${DB_PORT:-5444}
+POSTGRES_DBNAME=${DB_NAME:-"default_dbname"}
+POSTGRES_USER=${DB_USER:-"default_user"}
+POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-"default_password"}
+POSTGRES_TABLE=${DB_TABLE:-"default_table"}
 CONTAINER_NAME="db"
 NETWORK_NAME="shared_network"
 DB_FOLDER="db"  # Local folder for database storage

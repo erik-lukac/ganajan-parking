@@ -8,6 +8,7 @@ import sys
 import json
 import csv
 import os
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 
@@ -24,12 +25,12 @@ CSV_FILE_PATH = "/app/backend/webhook_debug.csv"  # Path to the CSV file, ensuri
 # PostgreSQL settings
 DB_SETTINGS = {
     "host": "db",
-    "port": 5432,
-    "dbname": "flow",
-    "user": "postgres",
-    "password": "123---321"
+    "port": int(os.getenv("DB_PORT", 5432)),  # Fetch port from environment variable
+    "dbname": os.getenv("DB_NAME", "flow"),  # Fetch database name from environment variable
+    "user": os.getenv("DB_USER", "postgres"),  # Fetch database user from environment variable
+    "password": os.getenv("DB_PASSWORD")  # Fetch password from environment variable
 }
-POSTGRES_TABLE = "parking"
+POSTGRES_TABLE = os.getenv("DB_TABLE", "parking")  # Fetch table name from environment variable
 
 # In-memory storage for logged IDs
 LOGGED_IDS = {

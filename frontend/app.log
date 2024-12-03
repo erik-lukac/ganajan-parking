@@ -1040,3 +1040,9 @@ TypeError: Object of type Undefined is not JSON serializable
 2024-11-22 12:25:59,784 - INFO - 172.18.0.6 - - [22/Nov/2024 12:25:59] "GET / HTTP/1.0" 200 -
 2024-11-22 12:25:59,819 - INFO - 172.18.0.6 - - [22/Nov/2024 12:25:59] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
 2024-11-22 12:25:59,874 - INFO - 172.18.0.6 - - [22/Nov/2024 12:25:59] "[36mGET /static/images/logo.png HTTP/1.0[0m" 304 -
+2024-12-03 06:55:38,280 - INFO - Parking Dashboard App is starting...
+2024-12-03 06:55:38,309 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://172.18.0.3:5001
+2024-12-03 06:55:38,309 - INFO - [33mPress CTRL+C to quit[0m

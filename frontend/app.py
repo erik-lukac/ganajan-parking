@@ -6,6 +6,9 @@ import traceback
 from flask import Flask, render_template, request, session
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from dotenv import load_dotenv
+
+load_dotenv()  # Load environment variables from .env file
 
 # Initialize the Flask app
 app = Flask(__name__, template_folder='templates')
@@ -28,11 +31,11 @@ app.logger.info("Parking Dashboard App is starting...")
 def get_db_connection():
     try:
         connection = psycopg2.connect(
-            dbname=os.environ.get("DB_NAME", "flow"),         # Your database name
-            user=os.environ.get("DB_USER", "postgres"),       # Your database user
-            password=os.environ.get("DB_PASSWORD", "123---321"),  # Your database password
+            dbname=os.environ.get("DB_NAME", "flow"),         # Fetch database name from environment variable
+            user=os.environ.get("DB_USER", "postgres"),       # Fetch database user from environment variable
+            password=os.environ.get("DB_PASSWORD"),           # Fetch password from environment variable
             host=os.environ.get("DB_HOST", "db"),             # Assuming PostgreSQL is running on localhost or Docker network
-            port=os.environ.get("DB_PORT", 5432),             # The port you exposed for PostgreSQL
+            port=os.environ.get("DB_PORT", 5432),             # Fetch port from environment variable
             cursor_factory=RealDictCursor  # This will return results as dictionaries
         )
         app.logger.info("Database connection established successfully.")
