@@ -1,6 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
+
 # first-run.sh
-# This script sets up a PostgreSQL database container, creates the database, and inserts an initial entry.
+# This script sets up a PostgreSQL database container, creates the database,
+# and inserts an initial entry on a fresh GCP VM without manual intervention.
 
 ### DATABASE CONFIGURATION ###
 POSTGRES_HOST="localhost"
@@ -18,7 +21,7 @@ export PGPASSWORD=$POSTGRES_PASSWORD
 
 # Embedded SQL for initial table creation and first entry
 EMBEDDED_SQL="
--- Grant permissions to the flowerist user
+-- Grant permissions to the user
 GRANT ALL ON SCHEMA public TO \"$POSTGRES_USER\";
 GRANT ALL PRIVILEGES ON DATABASE $POSTGRES_DBNAME TO \"$POSTGRES_USER\";
 
@@ -41,12 +44,40 @@ COPY $POSTGRES_TABLE (id, insertion_id, license_plate, category, color, \"timest
 \\.
 "
 
+echo "Preparing environment..."
+
+# 1. Update and install Docker if not present
+if ! command -v docker &> /dev/null; then
+    echo "Docker not found. Installing Docker..."
+    # For Debian/Ubuntu GCE VMs:
+    sudo apt-get update -y
+    sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release
+    # Add Docker’s official GPG key
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    # Set up stable repository
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] \
+      https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | \
+      sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    sudo apt-get update -y
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+else
+    echo "Docker is already installed."
+fi
+
+# 2. Start and enable the Docker service
+echo "Ensuring Docker is running..."
+sudo systemctl enable docker
+sudo systemctl start docker
+echo "Docker is running."
+
 echo "Setting up PostgreSQL Docker container..."
 
 # Step 1: Create Docker network if it doesn't exist
-if ! docker network ls | grep -q "$NETWORK_NAME"; then
+if ! sudo docker network ls | grep -q "$NETWORK_NAME"; then
     echo "Creating Docker network: $NETWORK_NAME"
-    docker network create "$NETWORK_NAME"
+    sudo docker network create "$NETWORK_NAME"
 else
     echo "Docker network $NETWORK_NAME already exists."
 fi
@@ -60,9 +91,9 @@ else
 fi
 
 # Step 3: Start the PostgreSQL Docker container
-if ! docker ps -a | grep -q "$CONTAINER_NAME"; then
+if ! sudo docker ps -a --format '{{.Names}}' | grep -qw "$CONTAINER_NAME"; then
     echo "Creating and starting Docker container: $CONTAINER_NAME"
-    docker run -d \
+    sudo docker run -d \
         --name "$CONTAINER_NAME" \
         --network "$NETWORK_NAME" \
         -e POSTGRES_USER=postgres \
@@ -73,12 +104,12 @@ if ! docker ps -a | grep -q "$CONTAINER_NAME"; then
         postgres:latest
 else
     echo "Docker container $CONTAINER_NAME already exists. Starting it..."
-    docker start "$CONTAINER_NAME"
+    sudo docker start "$CONTAINER_NAME"
 fi
 
 # Wait for the database service to be ready
 echo "Waiting for PostgreSQL to be ready..."
-until docker exec "$CONTAINER_NAME" pg_isready -U postgres > /dev/null 2>&1; do
+until sudo docker exec "$CONTAINER_NAME" pg_isready -U postgres > /dev/null 2>&1; do
     sleep 2
     echo "PostgreSQL is not ready yet. Retrying..."
 done
@@ -86,7 +117,7 @@ echo "PostgreSQL is ready."
 
 # Step 4: Create the database user if it doesn't exist
 echo "Creating database user if it doesn't exist..."
-docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$CONTAINER_NAME" psql -U postgres -c "
+sudo docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$CONTAINER_NAME" psql -U postgres -c "
 DO \$\$
 BEGIN
    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$POSTGRES_USER') THEN
@@ -97,22 +128,22 @@ END
 
 # Step 5: Create the database if it doesn't exist
 echo "Creating database if it doesn't exist..."
-docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$CONTAINER_NAME" psql -U postgres -c "
+sudo docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$CONTAINER_NAME" psql -U postgres -c "
 SELECT 1 FROM pg_database WHERE datname = '$POSTGRES_DBNAME';
-" | grep -q 1 || docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$CONTAINER_NAME" psql -U postgres -c "CREATE DATABASE $POSTGRES_DBNAME;"
+" | grep -q 1 || sudo docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$CONTAINER_NAME" psql -U postgres -c "CREATE DATABASE $POSTGRES_DBNAME;"
 
 # Step 6: Execute embedded SQL to grant permissions, create the table, and insert the first entry
 echo "Setting up the $POSTGRES_TABLE table and inserting the first entry..."
-docker exec -i "$CONTAINER_NAME" psql -U postgres -d "$POSTGRES_DBNAME" <<< "$EMBEDDED_SQL"
+echo "$EMBEDDED_SQL" | sudo docker exec -i "$CONTAINER_NAME" psql -U postgres -d "$POSTGRES_DBNAME"
 
-# Step 7: Grant SELECT permissions to flowerist on the $POSTGRES_TABLE table
+# Step 7: Grant SELECT permissions on the $POSTGRES_TABLE table
 echo "Granting SELECT permissions on the table..."
-docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$CONTAINER_NAME" psql -U postgres -d "$POSTGRES_DBNAME" -c "
+sudo docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$CONTAINER_NAME" psql -U postgres -d "$POSTGRES_DBNAME" -c "
 GRANT SELECT ON $POSTGRES_TABLE TO \"$POSTGRES_USER\";
 "
 
 # Step 8: Verify table creation and first entry
 echo "Verifying table creation and first entry..."
-docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$CONTAINER_NAME" psql -U "$POSTGRES_USER" -d "$POSTGRES_DBNAME" -c "SELECT * FROM $POSTGRES_TABLE;"
+sudo docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$CONTAINER_NAME" psql -U "$POSTGRES_USER" -d "$POSTGRES_DBNAME" -c "SELECT * FROM $POSTGRES_TABLE;"
 
-echo "Database setup and initial entry creation completed!"
+echo "Database setup and initial entry creation completed successfully!"
