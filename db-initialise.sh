@@ -1,4 +1,6 @@
-#!/usr/bin/env bash
+docker-compose down -v
+docker stop db
+docker rm db#!/usr/bin/env bash
 set -euo pipefail
 
 ### DATABASE CONFIGURATION ###
@@ -7,6 +9,15 @@ DB_USER=${DB_USER:-"default_user"}
 DB_NAME=${DB_NAME:-"default_dbname"}
 DB_PORT=${DB_PORT:-5444}
 DB_TABLE=${DB_TABLE:-"default_table"}
+
+# Create .env file with the configuration
+cat > .env << EOL
+POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+DB_USER=$DB_USER
+DB_NAME=$DB_NAME
+DB_PORT=$DB_PORT
+DB_PASSWORD=$POSTGRES_PASSWORD
+EOL
 
 CONTAINER_NAME="db"
 NETWORK_NAME="shared_network"

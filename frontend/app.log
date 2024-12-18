@@ -1052,3 +1052,21 @@ TypeError: Object of type Undefined is not JSON serializable
  * Running on http://127.0.0.1:5001
  * Running on http://172.19.0.4:5001
 2024-12-17 12:32:23,543 - INFO - [33mPress CTRL+C to quit[0m
+2024-12-17 13:29:43,342 - INFO - Parking Dashboard App is starting...
+2024-12-17 13:29:43,409 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://172.19.0.4:5001
+2024-12-17 13:29:43,409 - INFO - [33mPress CTRL+C to quit[0m
+2024-12-17 13:34:42,739 - INFO - Parking Dashboard App is starting...
+2024-12-17 13:34:42,767 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://172.19.0.3:5001
+2024-12-17 13:34:42,767 - INFO - [33mPress CTRL+C to quit[0m
+2024-12-17 13:48:31,155 - INFO - Parking Dashboard App is starting...
+2024-12-17 13:48:31,173 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://172.20.0.3:5001
+2024-12-17 13:48:31,173 - INFO - [33mPress CTRL+C to quit[0m
