@@ -1,21 +1,21 @@
-#docker-compose.yml
-
 services:
   db:
     image: postgres:latest
     container_name: db
     networks:
       - shared_network
-    ports:
-      - "5444:5432"  # Exposing PostgreSQL from container (port 5432) to Docker host (port 5444), accessible externally on VM
+    expose:
+      - "5432"  # PostgreSQL listens on this port inside shared_network in docker host
+#    ports:
+#      - "${DB_PORT}:5432"  # Uncomment if you need external access
+    env_file:
+      - .env
     environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}  # Use environment variable
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_DB=${DB_NAME}
-      - DB_PORT=${DB_PORT}  # Add port environment variable if needed
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_USER: "${DB_USER}"
+      POSTGRES_DB: "${DB_NAME}"
     volumes:
-      - db_data:/var/lib/postgresql/data  # Persist database data
-      #- ./db-initialise.sh:/docker-entrypoint-initdb.d/db-initialise.sh # Mount the initialization script
+      - ./db:/var/lib/postgresql/data  # Stores DB data locally
     restart: always
 
   backend:
@@ -24,14 +24,16 @@ services:
       dockerfile: dockerfile.backend
     container_name: backend
     expose:
-      - "5000"  # Exposing Flask app port to internal shared_network on Docker, specificaly for nxing proxy
+      - "5000"
     networks:
       - shared_network
-    restart: always
     depends_on:
       - db
+    env_file:
+      - .env  # Explicitly load environment variables from .env
     volumes:
       - ./backend:/app/backend
+    restart: always
 
   frontend:
     build:
@@ -39,30 +41,30 @@ services:
       dockerfile: dockerfile.frontend
     container_name: frontend
     expose:
-      - "5001"  # Exposing Flask app port to internal shared_network on Docker, specificaly for nxing proxy
+      - "5001"
     networks:
       - shared_network
-    restart: always
     depends_on:
       - db
     volumes:
       - ./frontend:/app
+    restart: always
 
   proxy:
     image: nginx:latest
     container_name: proxy
     ports:
-      - "32211:32211"  # Exposing external port 32211 for webhook traffic (backend)
-      - "32212:32212"  # Exposing external port 32212 for frontend traffic (frontend)
+      - "32211:32211"
+      - "32212:32212"
     volumes:
-      - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro  # Mounting custom Nginx configuration
-      - ./proxy/logs:/var/log/nginx  # Enabling logging
+      - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./proxy/logs:/var/log/nginx
     networks:
       - shared_network
-    restart: always
     depends_on:
       - backend
       - frontend
+    restart: always
 
 networks:
   shared_network:

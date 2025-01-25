@@ -8,10 +8,7 @@ import sys
 import json
 import csv
 import os
-
-# NEW: load_dotenv to actually read .env file if present
 from dotenv import load_dotenv
-load_dotenv()
 
 app = Flask(__name__)
 
@@ -25,15 +22,15 @@ LOG_INCOMING_DATA = False  # Set to True to log incoming JSON data
 DEBUG_CSV = False  # Enable or disable raw JSON logging to CSV
 CSV_FILE_PATH = "/app/backend/webhook_debug.csv"  # Path to the CSV file, ensuring it's in the backend folder
 
-# Read environment variables (with defaults) -- make sure .env has these set, or Docker Compose environment passes them
+# PostgreSQL settings
 DB_SETTINGS = {
-    "host": os.getenv("DB_HOST", "db"),
-    "port": int(os.getenv("DB_PORT", 5432)),
-    "dbname": os.getenv("DB_NAME", "flow"),
-    "user": os.getenv("DB_USER", "postgres"),
-    "password": os.getenv("DB_PASSWORD", "")
+    "host": "db",
+    "port": int(os.getenv("DB_PORT", 5432)),  # Fetch port from environment variable
+    "dbname": os.getenv("DB_NAME", "flow"),  # Fetch database name from environment variable
+    "user": os.getenv("DB_USER", "postgres"),  # Fetch database user from environment variable
+    "password": os.getenv("DB_PASSWORD")  # Fetch password from environment variable
 }
-POSTGRES_TABLE = os.getenv("DB_TABLE", "parking")
+POSTGRES_TABLE = os.getenv("DB_TABLE", "parking")  # Fetch table name from environment variable
 
 # In-memory storage for logged IDs
 LOGGED_IDS = {
@@ -249,7 +246,7 @@ def insert_new_entries(new_entries: List[tuple]):
 
 # Webhook endpoints
 
-import pprint  # For pretty-printing JSON data
+import pprint  # Import pprint for pretty-printing JSON data
 
 @app.route('/webhooks/ganajan_bike_in', methods=['POST'])
 def ganajan_bike_in():
@@ -263,6 +260,7 @@ def ganajan_bike_in():
 
     # Log the incoming data only if LOG_INCOMING_DATA is enabled
     if LOG_INCOMING_DATA:
+        import pprint
         log_with_prefix(logging.DEBUG, "WEBHOOK ", f"Incoming data:\n{pprint.pformat(data)}")
 
     write_json_to_csv("ganajan_bike_in", data)  # Write raw JSON to CSV
