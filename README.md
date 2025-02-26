@@ -33,15 +33,11 @@ To set up Ganajan Parking on a fresh virtual machine, follow these steps:
 2. **Configure Environment Variables**:
    - Create a `.env` file in the root directory with the following content:
      ```env
-     DB_PASSWORD=your_secure_password
-     POSTGRES_PASSWORD=your_secure_password
-     SECRET_KEY=your_secret_key
-     DB_USER=flowerist
-     DB_NAME=flow
-     DB_TABLE=parking
-     DB_PORT=5444
-     DB_HOST=db
-     DB_CONTAINER_NAME=db
+   POSTGRES_PASSWORD=default_password
+   DB_USER=default_user
+   DB_NAME=default_dbname
+   DB_PORT=5432
+   DB_PASSWORD=default_password
      ```
 
 3. **Run Initial Setup**:

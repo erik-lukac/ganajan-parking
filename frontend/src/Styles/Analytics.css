@@ -1,0 +1,91 @@
+/* Add font-face declarations */
+@font-face {
+  font-family: 'Satoshi-Bold';
+  src: url('../fonts/Satoshi-Bold.woff2') format('woff2'),
+       url('../fonts/Satoshi-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Satoshi-Medium';
+  src: url('../fonts/Satoshi-Medium.woff2') format('woff2'),
+       url('../fonts/Satoshi-Medium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+}
+
+/* Duration Card Styles */
+.duration-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.trend-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: 'Satoshi-Medium';
+}
+
+.trend-up {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.trend-down {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+.trend-neutral {
+  background-color: #f1f5f9;
+  color: #64748b;
+}
+
+.average-duration {
+  font-family: 'Satoshi-Bold';
+  font-size: 32px;
+  color: #0f172a;
+  margin: 16px 0;
+}
+
+.comparison-period {
+  font-family: 'Satoshi-Regular';
+  font-size: 14px;
+  color: #64748b;
+}
+
+.analytics-container {
+  padding: 24px;
+  background-color: #f8fafc;
+  min-height: 100vh;
+}
+
+.stat-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .analytics-container {
+    padding: 16px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .analytics-container {
+    background-color: #0a1929;
+  }
+} 

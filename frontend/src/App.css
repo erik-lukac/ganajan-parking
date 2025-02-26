@@ -1,0 +1,80 @@
+
+
+
+.App{
+  margin: 0;
+  padding: 0;
+}
+body{
+  margin: 0;
+  padding: 0;
+  overflow-y: scroll;
+}
+
+.Sidebar{
+  height: 100vh;
+  width: 300px;
+  background-color: #003554;
+  padding: 1%;
+}
+
+.SidebarList{
+  height: auto;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  padding-top: 20%;
+}
+
+.SidebarList .row{
+  width: 100%;
+  height: 64px;
+  list-style-type: none;
+  display: flex;
+  flex-direction: row;
+  color: white;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2%;
+}
+
+
+.SidebarList .row:hover{
+  cursor: pointer;
+  background-color: #293846;
+  border-radius: 20px;
+}
+
+.SidebarList #active{
+  background-color: #90e0ef;
+  border-radius: 20px;
+  color: #003554;
+}
+
+.Home{
+  text-align: end;
+  color: black;
+}
+
+
+
+
+.App {
+  display: flex;
+}
+
+.content {
+  margin-left: 250px;
+  padding: 20px;
+  flex-grow: 1;
+}
+
+@media (max-width: 768px) {
+  .content {
+    margin-left: 0;
+  }
+}
+
+section {
+  margin-bottom: 40px;
+}

@@ -35,19 +35,21 @@ services:
       - ./backend:/app/backend
     restart: always
 
-  frontend:
+  endpoint:
     build:
-      context: ./frontend
-      dockerfile: dockerfile.frontend
-    container_name: frontend
-    expose:
-      - "5001"
+      context: ./endpoint
+      dockerfile: dockerfile.endpoint
+    container_name: endpoint
+      #expose:
+      #- "5001"
+    ports:
+      - "5001:5001"
     networks:
       - shared_network
     depends_on:
       - db
     volumes:
-      - ./frontend:/app
+      - ./endpoint:/app
     restart: always
 
   proxy:
@@ -63,7 +65,7 @@ services:
       - shared_network
     depends_on:
       - backend
-      - frontend
+      - endpoint
     restart: always
 
 networks:
