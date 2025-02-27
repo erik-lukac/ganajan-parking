@@ -48,6 +48,8 @@ services:
       - shared_network
     depends_on:
       - db
+    env_file:
+      - .env 
     volumes:
       - ./endpoint:/app
     restart: always

@@ -1,9 +1,8 @@
 # app.py
 import os
-import re
 import logging
 import traceback
-from flask import Flask, render_template, request, session
+from flask import Flask, request, jsonify
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
@@ -11,18 +10,18 @@ from dotenv import load_dotenv
 load_dotenv()  # Load environment variables from .env file
 
 # Initialize the Flask app
-app = Flask(__name__, template_folder='templates')
+app = Flask(__name__)
 
 # Set a secret key for session management
-app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24))
+app.secret_key = os.environ.get("SECRET_KEY", os.urandom(24))
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.StreamHandler(),  # Log to console
-        logging.FileHandler("app.log", mode='a')  # Log to file
+        logging.StreamHandler(),
+        logging.FileHandler("app.log", mode="a")
     ]
 )
 app.logger.info("Parking Dashboard App is starting...")
@@ -31,12 +30,12 @@ app.logger.info("Parking Dashboard App is starting...")
 def get_db_connection():
     try:
         connection = psycopg2.connect(
-            dbname=os.environ.get("DB_NAME", "flow"),         # Fetch database name from environment variable
-            user=os.environ.get("DB_USER", "postgres"),       # Fetch database user from environment variable
-            password=os.environ.get("DB_PASSWORD"),           # Fetch password from environment variable
-            host=os.environ.get("DB_HOST", "db"),             # Assuming PostgreSQL is running on localhost or Docker network
-            port=os.environ.get("DB_PORT", 5432),             # Fetch port from environment variable
-            cursor_factory=RealDictCursor  # This will return results as dictionaries
+            dbname=os.environ.get("DB_NAME", "flow"),
+            user=os.environ.get("DB_USER", "postgres"),
+            password=os.environ.get("DB_PASSWORD"),
+            host=os.environ.get("DB_HOST", "db"),
+            port=os.environ.get("DB_PORT", 5432),
+            cursor_factory=RealDictCursor
         )
         app.logger.info("Database connection established successfully.")
         return connection
@@ -44,334 +43,381 @@ def get_db_connection():
         app.logger.error(f"Database connection error: {e}")
         raise
 
-# Input validation function
-def is_valid_license_plate(license_plate):
-    """Validate the license plate format."""
-    if license_plate is None:
-        app.logger.warning("License plate is None.")
-        return False
-    valid = bool(re.match(r"^[A-Za-z0-9-]{1,10}$", license_plate))
-    if not valid:
-        app.logger.warning(f"Invalid license plate format: {license_plate}")
-    return valid
-
-# Overview Route
-@app.route("/", methods=["GET", "POST"])
-def overview():
+# ---------------------------------------
+# 1. /data Endpoint
+# ---------------------------------------
+@app.route("/data", methods=["GET"])
+def data():
     try:
-        connection = get_db_connection()
-        cursor = connection.cursor()
+        # Retrieve query parameters (all optional)
+        start_date = request.args.get("start_date")
+        end_date = request.args.get("end_date")
+        license_prefix = request.args.get("license_prefix")
+        categories = request.args.get("categories")
+        colors = request.args.get("colors")
+        gates = request.args.get("gates")
+        search = request.args.get("search")
+        page_size = int(request.args.get("page_size", 10))
+        page = int(request.args.get("page", 1))
+        offset = (page - 1) * page_size
 
-        # Initialize dates from session or None
-        start_date = session.get("start_date")
-        end_date = session.get("end_date")
-        
-        # Initialize data structures
-        last_5_car_in = []
-        last_5_car_out = []
-        last_5_bike_in = []
-        last_5_bike_out = []
-
-        if request.method == "POST":
-            # Update dates based on user input
-            start_date = request.form.get("start_date")
-            end_date = request.form.get("end_date")
-            session['start_date'] = start_date
-            session['end_date'] = end_date
-
-        # Function to fetch last N entries based on gate pattern and category
-        def fetch_last_n(gate_pattern, category, limit=5):
-            if start_date and end_date:
-                cursor.execute(
-                    """
-                    SELECT id, license_plate, category, color, timestamp 
-                    FROM parking 
-                    WHERE category = %s AND gate LIKE %s AND timestamp BETWEEN %s AND %s
-                    ORDER BY timestamp DESC 
-                    LIMIT %s;
-                    """,
-                    (category, f"%{gate_pattern}", start_date, end_date, limit)
-                )
-            else:
-                cursor.execute(
-                    """
-                    SELECT id, license_plate, category, color, timestamp 
-                    FROM parking 
-                    WHERE category = %s AND gate LIKE %s 
-                    ORDER BY timestamp DESC 
-                    LIMIT %s;
-                    """,
-                    (category, f"%{gate_pattern}", limit)
-                )
-            return cursor.fetchall()
-
-        # Fetch last 5 car entries (car_in)
-        last_5_car_in = fetch_last_n('car_in', 'car', 5)
-
-        # Fetch last 5 car exits (car_out)
-        last_5_car_out = fetch_last_n('car_out', 'car', 5)
-
-        # Fetch last 5 bike entries (bike_in) - assuming category is 'motorcycle'
-        last_5_bike_in = fetch_last_n('bike_in', 'motorcycle', 5)
-
-        # Fetch last 5 bike exits (bike_out) - assuming category is 'motorcycle'
-        last_5_bike_out = fetch_last_n('bike_out', 'motorcycle', 5)
-
-        cursor.close()
-        connection.close()
-
-        return render_template(
-            "dashboard.html",
-            view="overview",
-            last_5_car_in=last_5_car_in,
-            last_5_car_out=last_5_car_out,
-            last_5_bike_in=last_5_bike_in,
-            last_5_bike_out=last_5_bike_out,
-            start_date=start_date,
-            end_date=end_date
+        query = """
+            SELECT *
+            FROM parking
+            WHERE
+              (timestamp >= COALESCE(%s::timestamptz, timestamp))
+              AND (timestamp <= COALESCE(%s::timestamptz, timestamp))
+              AND (%s IS NULL OR license_plate ILIKE (%s || '%%'))
+              AND (%s IS NULL OR category IN (SELECT UNNEST(string_to_array(%s, ',')) ))
+              AND (%s IS NULL OR color IN (SELECT UNNEST(string_to_array(%s, ',')) ))
+              AND (%s IS NULL OR gate IN (SELECT UNNEST(string_to_array(%s, ',')) ))
+              AND (
+                   %s IS NULL OR 
+                   license_plate ILIKE ('%%' || %s || '%%') OR
+                   category ILIKE ('%%' || %s || '%%') OR
+                   color ILIKE ('%%' || %s || '%%') OR
+                   gate ILIKE ('%%' || %s || '%%') OR
+                   zone ILIKE ('%%' || %s || '%%') OR
+                   description ILIKE ('%%' || %s || '%%')
+              )
+            ORDER BY timestamp DESC
+            LIMIT %s
+            OFFSET %s;
+        """
+        # Parameter count:
+        # 2 for start_date/end_date,
+        # 2 for license_prefix,
+        # 2 for categories,
+        # 2 for colors,
+        # 2 for gates,
+        # 7 for search block,
+        # 1 for LIMIT and 1 for OFFSET => Total 19
+        params = (
+            start_date, end_date,
+            license_prefix, license_prefix,
+            categories, categories,
+            colors, colors,
+            gates, gates,
+            search, search, search, search, search, search, search,
+            page_size, offset
         )
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(query, params)
+        results = cur.fetchall()
+        cur.close()
+        conn.close()
+        return jsonify(results)
     except Exception as e:
-        app.logger.error(f"Error in overview route: {e}")
+        app.logger.error(f"Error in /data endpoint: {e}")
         app.logger.error(traceback.format_exc())
-        return render_template(
-            "dashboard.html", 
-            view="overview", 
-            error_message="Could not load data.", 
-            start_date=session.get("start_date"), 
-            end_date=session.get("end_date")
-        ), 500
+        return jsonify({"error": "Could not load data", "details": str(e)}), 500
 
-# Search Route
-@app.route("/search", methods=["GET", "POST"])
-def search():
+# ---------------------------------------
+# 2. /dashboard/data Endpoint
+# ---------------------------------------
+@app.route("/dashboard/data", methods=["GET"])
+def dashboard_data():
     try:
-        if request.method == "POST":
-            license_plate = request.form.get("license_plate")
-            
-            if not license_plate:
-                app.logger.warning("No license plate provided in search.")
-                return render_template(
-                    "dashboard.html", 
-                    view="search", 
-                    error_message="Please provide a license plate to search.", 
-                    start_date=session.get("start_date"), 
-                    end_date=session.get("end_date")
-                )
+        search = request.args.get("search")
+        page_size = int(request.args.get("page_size", 10))
+        page = int(request.args.get("page", 1))
+        offset = (page - 1) * page_size
 
-            if not is_valid_license_plate(license_plate):
-                return render_template(
-                    "dashboard.html", 
-                    view="search", 
-                    error_message="Invalid license plate format.", 
-                    start_date=session.get("start_date"), 
-                    end_date=session.get("end_date")
-                )
-
-            connection = get_db_connection()
-            cursor = connection.cursor()
-
-            # Search by license plate
-            cursor.execute(
-                """
-                SELECT id, license_plate, category, color, timestamp 
-                FROM parking 
-                WHERE license_plate LIKE %s 
-                ORDER BY timestamp DESC 
-                LIMIT 10;
-                """,
-                (f"%{license_plate}%",)
-            )
-            search_results = cursor.fetchall()
-            app.logger.info(f"Search results for {license_plate}: {search_results}")
-
-            cursor.close()
-            connection.close()
-            return render_template(
-                "dashboard.html", 
-                view="search", 
-                search_results=search_results, 
-                start_date=session.get("start_date"), 
-                end_date=session.get("end_date")
-            )
-        else:
-            # For GET request, simply render the search page with existing date selections
-            return render_template(
-                "dashboard.html", 
-                view="search", 
-                start_date=session.get("start_date"), 
-                end_date=session.get("end_date")
-            )
-    except Exception as e:
-        app.logger.error(f"Error during license plate search: {e}")
-        app.logger.error(traceback.format_exc())
-        return render_template(
-            "dashboard.html", 
-            view="search", 
-            error_message="An error occurred while searching.", 
-            start_date=session.get("start_date"), 
-            end_date=session.get("end_date")
-        ), 500
-
-# Statistics Route
-@app.route("/statistics", methods=["GET", "POST"])
-def statistics():
-    try:
-        connection = get_db_connection()
-        cursor = connection.cursor()
-
-        # Initialize dates from session or None
-        start_date = session.get("start_date")
-        end_date = session.get("end_date")
-        statistics_data_pie = []
-        statistics_data_bar_vehicles = []
-        statistics_data_hourly_average = []
-
-        if request.method == "POST":
-            # Update dates based on user input
-            start_date = request.form.get("start_date")
-            end_date = request.form.get("end_date")
-            session['start_date'] = start_date
-            session['end_date'] = end_date
-
-        if start_date and end_date:
-            # Pie Chart Data: Categories Count
-            cursor.execute(
-                """
-                SELECT category, COUNT(*) as count 
-                FROM parking 
-                WHERE timestamp BETWEEN %s AND %s 
-                GROUP BY category;
-                """,
-                (start_date, end_date)
-            )
-            statistics_data_pie = cursor.fetchall()
-
-            # Bar Chart Data: Sum of Vehicles per Day
-            cursor.execute(
-                """
-                SELECT DATE(timestamp) as day, COUNT(*) as total_vehicles
-                FROM parking
-                WHERE timestamp BETWEEN %s AND %s
-                GROUP BY day
-                ORDER BY day;
-                """,
-                (start_date, end_date)
-            )
-            statistics_data_bar_vehicles = cursor.fetchall()
-
-            # Hourly Average Data
-            cursor.execute(
-                """
-                SELECT hour, AVG(vehicle_count) AS average_vehicle_count FROM (
-                    SELECT DATE(timestamp) AS date, EXTRACT(HOUR FROM timestamp) AS hour, COUNT(*) AS vehicle_count
-                    FROM parking
-                    WHERE timestamp BETWEEN %s AND %s
-                    GROUP BY date, hour
-                ) sub
-                GROUP BY hour
-                ORDER BY hour;
-                """,
-                (start_date, end_date)
-            )
-            statistics_data_hourly_average = cursor.fetchall()
-
-            app.logger.info(f"Fetched statistics from {start_date} to {end_date}")
-        else:
-            # Default statistics (e.g., for the last month)
-            cursor.execute(
-                """
-                SELECT category, COUNT(*) as count 
-                FROM parking 
-                GROUP BY category;
-                """
-            )
-            statistics_data_pie = cursor.fetchall()
-
-            cursor.execute(
-                """
-                SELECT DATE(timestamp) as day, COUNT(*) as total_vehicles
-                FROM parking
-                GROUP BY day
-                ORDER BY day;
-                """
-            )
-            statistics_data_bar_vehicles = cursor.fetchall()
-
-            # Hourly Average Data
-            cursor.execute(
-                """
-                SELECT hour, AVG(vehicle_count) AS average_vehicle_count FROM (
-                    SELECT DATE(timestamp) AS date, EXTRACT(HOUR FROM timestamp) AS hour, COUNT(*) AS vehicle_count
-                    FROM parking
-                    GROUP BY date, hour
-                ) sub
-                GROUP BY hour
-                ORDER BY hour;
-                """
-            )
-            statistics_data_hourly_average = cursor.fetchall()
-
-            app.logger.info(f"Fetched default statistics")
-
-        cursor.close()
-        connection.close()
-
-        # Prepare data for Chart.js
-        pie_labels = [row['category'] for row in statistics_data_pie]
-        pie_values = [row['count'] for row in statistics_data_pie]
-
-        bar_labels = [row['day'].strftime('%Y-%m-%d') for row in statistics_data_bar_vehicles]
-        bar_total_vehicles = [row['total_vehicles'] for row in statistics_data_bar_vehicles]
-
-        hourly_labels = [int(row['hour']) for row in statistics_data_hourly_average]
-        hourly_averages = [row['average_vehicle_count'] for row in statistics_data_hourly_average]
-
-        return render_template(
-            "dashboard.html",
-            view="statistics",
-            pie_labels=pie_labels,
-            pie_values=pie_values,
-            bar_labels=bar_labels,
-            bar_total_vehicles=bar_total_vehicles,
-            hourly_labels=hourly_labels,
-            hourly_averages=hourly_averages,
-            start_date=start_date,
-            end_date=end_date
+        query = """
+            SELECT *
+            FROM parking
+            WHERE
+              %s IS NULL OR
+              license_plate ILIKE ('%%' || %s || '%%') OR
+              category ILIKE ('%%' || %s || '%%') OR
+              color ILIKE ('%%' || %s || '%%') OR
+              gate ILIKE ('%%' || %s || '%%') OR
+              zone ILIKE ('%%' || %s || '%%') OR
+              description ILIKE ('%%' || %s || '%%')
+            ORDER BY timestamp DESC
+            LIMIT %s
+            OFFSET %s;
+        """
+        # Count placeholders: 1 (check search is NULL) + 6 (for each field) + LIMIT + OFFSET = 9.
+        # So we need 7 copies of search for the search block.
+        params = (
+            search, search, search, search, search, search, search,
+            page_size, offset
         )
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(query, params)
+        results = cur.fetchall()
+        cur.close()
+        conn.close()
+        return jsonify(results)
     except Exception as e:
-        app.logger.error(f"Error in statistics route: {e}")
+        app.logger.error(f"Error in /dashboard/data endpoint: {e}")
         app.logger.error(traceback.format_exc())
-        return render_template(
-            "dashboard.html", 
-            view="statistics", 
-            error_message="Could not load statistics data.", 
-            start_date=session.get("start_date"), 
-            end_date=session.get("end_date")
-        ), 500
+        return jsonify({"error": "Could not load dashboard data", "details": str(e)}), 500
 
-# Error Handling
-@app.errorhandler(404)
-def page_not_found(e):
-    app.logger.warning("Page not found: 404 error")
-    return render_template(
-        "dashboard.html", 
-        view="overview", 
-        error_message="Page not found.", 
-        start_date=session.get("start_date"), 
-        end_date=session.get("end_date")
-    ), 404
+# ---------------------------------------
+# 3. /stats/category-stats Endpoint
+# ---------------------------------------
+@app.route("/stats/category-stats", methods=["GET"])
+def category_stats():
+    try:
+        start_date = request.args.get("start_date")
+        end_date = request.args.get("end_date")
+        if not start_date or not end_date:
+            return jsonify({"error": "start_date and end_date parameters are required"}), 400
 
-@app.errorhandler(500)
-def internal_error(e):
-    app.logger.error(f"Internal server error: {e}")
-    app.logger.error(traceback.format_exc())
-    return render_template(
-        "dashboard.html", 
-        view="overview", 
-        error_message="An unexpected error occurred.", 
-        start_date=session.get("start_date"), 
-        end_date=session.get("end_date")
-    ), 500
+        query = """
+            SELECT category, COUNT(*) AS count
+            FROM parking
+            WHERE
+              timestamp >= %s::timestamptz
+              AND timestamp <= %s::timestamptz
+            GROUP BY category;
+        """
+        params = (start_date, end_date)
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(query, params)
+        results = cur.fetchall()
+        cur.close()
+        conn.close()
+        return jsonify(results)
+    except Exception as e:
+        app.logger.error(f"Error in /stats/category-stats endpoint: {e}")
+        app.logger.error(traceback.format_exc())
+        return jsonify({"error": "Could not load category stats", "details": str(e)}), 500
+
+# ---------------------------------------
+# 4. /stats/today-entries Endpoint
+# ---------------------------------------
+@app.route("/stats/today-entries", methods=["GET"])
+def today_entries():
+    try:
+        query = """
+            SELECT COUNT(*) AS count
+            FROM parking
+            WHERE DATE(timestamp) = CURRENT_DATE
+              AND gate ILIKE '%%_in';
+        """
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(query)
+        result = cur.fetchone()
+        cur.close()
+        conn.close()
+        return jsonify(result)
+    except Exception as e:
+        app.logger.error(f"Error in /stats/today-entries endpoint: {e}")
+        app.logger.error(traceback.format_exc())
+        return jsonify({"error": "Could not load today's entries", "details": str(e)}), 500
+
+# ---------------------------------------
+# 5. /stats/recent-entries Endpoint
+# ---------------------------------------
+@app.route("/stats/recent-entries", methods=["GET"])
+def recent_entries():
+    try:
+        query = """
+            SELECT COUNT(*) AS count
+            FROM parking
+            WHERE timestamp >= NOW() - INTERVAL '10 minutes'
+              AND gate ILIKE '%%_in';
+        """
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(query)
+        result = cur.fetchone()
+        cur.close()
+        conn.close()
+        return jsonify(result)
+    except Exception as e:
+        app.logger.error(f"Error in /stats/recent-entries endpoint: {e}")
+        app.logger.error(traceback.format_exc())
+        return jsonify({"error": "Could not load recent entries", "details": str(e)}), 500
+
+# ---------------------------------------
+# 6. /export Endpoint
+# ---------------------------------------
+@app.route("/export", methods=["GET"])
+def export():
+    try:
+        start_date = request.args.get("start_date")
+        end_date = request.args.get("end_date")
+        license_prefix = request.args.get("license_prefix")
+        categories = request.args.get("categories")
+        colors = request.args.get("colors")
+        gates = request.args.get("gates")
+        search = request.args.get("search")
+
+        query = """
+            SELECT *
+            FROM parking
+            WHERE
+              (timestamp >= COALESCE(%s::timestamptz, timestamp))
+              AND (timestamp <= COALESCE(%s::timestamptz, timestamp))
+              AND (%s IS NULL OR license_plate ILIKE (%s || '%%'))
+              AND (%s IS NULL OR category IN (SELECT UNNEST(string_to_array(%s, ',')) ))
+              AND (%s IS NULL OR color IN (SELECT UNNEST(string_to_array(%s, ',')) ))
+              AND (%s IS NULL OR gate IN (SELECT UNNEST(string_to_array(%s, ',')) ))
+              AND (
+                   %s IS NULL OR 
+                   license_plate ILIKE ('%%' || %s || '%%') OR
+                   category ILIKE ('%%' || %s || '%%') OR
+                   color ILIKE ('%%' || %s || '%%') OR
+                   gate ILIKE ('%%' || %s || '%%') OR
+                   zone ILIKE ('%%' || %s || '%%') OR
+                   description ILIKE ('%%' || %s || '%%')
+              )
+            ORDER BY timestamp DESC;
+        """
+        # Parameter count:
+        # 2 for start_date/end_date,
+        # 2 for license_prefix,
+        # 2 for categories,
+        # 2 for colors,
+        # 2 for gates,
+        # 7 for search block => total 2+2+2+2+2+7 = 17.
+        params = (
+            start_date, end_date,
+            license_prefix, license_prefix,
+            categories, categories,
+            colors, colors,
+            gates, gates,
+            search, search, search, search, search, search, search
+        )
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(query, params)
+        results = cur.fetchall()
+        cur.close()
+        conn.close()
+        return jsonify(results)
+    except Exception as e:
+        app.logger.error(f"Error in /export endpoint: {e}")
+        app.logger.error(traceback.format_exc())
+        return jsonify({"error": "Could not export data", "details": str(e)}), 500
+
+# ---------------------------------------
+# 7. /stats/trends Endpoint
+# ---------------------------------------
+@app.route("/stats/trends", methods=["GET"])
+def stats_trends():
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # Today's entries
+        cur.execute("""
+            SELECT COUNT(*) AS count
+            FROM parking
+            WHERE DATE(timestamp) = CURRENT_DATE
+              AND gate ILIKE '%%_in';
+        """)
+        todays_entries = cur.fetchone()
+
+        # Today's exits
+        cur.execute("""
+            SELECT COUNT(*) AS count
+            FROM parking
+            WHERE DATE(timestamp) = CURRENT_DATE
+              AND gate ILIKE '%%_out';
+        """)
+        todays_exits = cur.fetchone()
+
+        # Yesterday's entries
+        cur.execute("""
+            SELECT COUNT(*) AS count
+            FROM parking
+            WHERE DATE(timestamp) = CURRENT_DATE - INTERVAL '1 day'
+              AND gate ILIKE '%%_in';
+        """)
+        yesterdays_entries = cur.fetchone()
+
+        # Yesterday's exits
+        cur.execute("""
+            SELECT COUNT(*) AS count
+            FROM parking
+            WHERE DATE(timestamp) = CURRENT_DATE - INTERVAL '1 day'
+              AND gate ILIKE '%%_out';
+        """)
+        yesterdays_exits = cur.fetchone()
+
+        cur.close()
+        conn.close()
+
+        return jsonify({
+            "todays_entries": todays_entries,
+            "todays_exits": todays_exits,
+            "yesterdays_entries": yesterdays_entries,
+            "yesterdays_exits": yesterdays_exits
+        })
+    except Exception as e:
+        app.logger.error(f"Error in /stats/trends endpoint: {e}")
+        app.logger.error(traceback.format_exc())
+        return jsonify({"error": "Could not load trends", "details": str(e)}), 500
+
+# ---------------------------------------
+# 8. /stats/duration-stats Endpoint
+# ---------------------------------------
+@app.route("/stats/duration-stats", methods=["GET"])
+def duration_stats():
+    try:
+        start_time = request.args.get("start_time")
+        if not start_time:
+            return jsonify({"error": "start_time parameter is required"}), 400
+
+        query = """
+            SELECT
+                e.insertion_id AS entry_id,
+                e.license_plate,
+                e.timestamp AS entry_timestamp,
+                x.timestamp AS exit_timestamp,
+                EXTRACT(EPOCH FROM (x.timestamp - e.timestamp)) AS duration
+            FROM parking e
+            LEFT JOIN LATERAL (
+                SELECT *
+                FROM parking x
+                WHERE x.license_plate = e.license_plate
+                  AND x.gate ILIKE '%%_out'
+                  AND x.timestamp > e.timestamp
+                ORDER BY x.timestamp ASC
+                LIMIT 1
+            ) x ON true
+            WHERE e.gate ILIKE '%%_in'
+              AND e.timestamp >= %s::timestamptz;
+        """
+        params = (start_time,)
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(query, params)
+        results = cur.fetchall()
+        cur.close()
+        conn.close()
+        return jsonify(results)
+    except Exception as e:
+        app.logger.error(f"Error in /stats/duration-stats endpoint: {e}")
+        app.logger.error(traceback.format_exc())
+        return jsonify({"error": "Could not load duration stats", "details": str(e)}), 500
+
+# ---------------------------------------
+# Existing /test Endpoint (unchanged)
+# ---------------------------------------
+@app.route("/test", methods=["GET"])
+def test():
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM parking ORDER BY timestamp DESC LIMIT 5;")
+        test_entries = cur.fetchall()
+        cur.close()
+        conn.close()
+        return jsonify(test_entries)
+    except Exception as e:
+        app.logger.error(f"Error in /test route: {e}")
+        app.logger.error(traceback.format_exc())
+        return jsonify({"error": "Could not load test entries", "details": str(e)}), 500
 
 # Start the app
 if __name__ == "__main__":
