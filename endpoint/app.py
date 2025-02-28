@@ -3,6 +3,7 @@ import os
 import logging
 import traceback
 from typing import Any, Optional, Tuple
+from datetime import datetime  # Added import for datetime
 
 from flask import Flask, request, jsonify  # type: ignore
 import psycopg2
@@ -11,13 +12,18 @@ from psycopg2.extensions import connection as Connection  # type: ignore
 from dotenv import load_dotenv
 from flask_cors import CORS
 
-
-
 load_dotenv()  # Load environment variables from .env file
 
 # Initialize the Flask app
 app: Flask = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "http://localhost:32212"}})
+
+# CORS allowed origins
+CORS(app, resources={r"/*": {"origins": [
+    "http://localhost:32212",
+    "http://localhost:3000",
+    "http://35.208.144.223:32212"
+]}})
+
 # Set a secret key for session management; use an env variable or generate one
 app.secret_key = os.environ.get("SECRET_KEY", os.urandom(24))
 
@@ -149,7 +155,7 @@ def dashboard_data() -> Any:
         query: str = """
             SELECT *
             FROM parking
-            WHERE
+            WHERE (
               %s IS NULL OR
               license_plate ILIKE ('%%' || %s || '%%') OR
               category ILIKE ('%%' || %s || '%%') OR
@@ -157,6 +163,8 @@ def dashboard_data() -> Any:
               gate ILIKE ('%%' || %s || '%%') OR
               zone ILIKE ('%%' || %s || '%%') OR
               description ILIKE ('%%' || %s || '%%')
+            )
+            AND category != 'pedestrian'
             ORDER BY timestamp DESC
             LIMIT %s
             OFFSET %s;
@@ -236,7 +244,8 @@ def today_entries() -> Any:
             SELECT COUNT(*) AS count
             FROM parking
             WHERE DATE(timestamp) = CURRENT_DATE
-              AND gate ILIKE '%%_in';
+              AND gate ILIKE '%%_in'
+              AND category != 'pedestrian';
         """
         conn: Connection = get_db_connection()
         cur = conn.cursor()
@@ -462,7 +471,8 @@ def today_exits() -> Any:
             SELECT COUNT(*) AS count
             FROM parking
             WHERE DATE(timestamp) = CURRENT_DATE
-              AND gate ILIKE '%%_out';
+              AND gate ILIKE '%%_out'
+              AND category != 'pedestrian';
         """
         conn: Connection = get_db_connection()
         cur = conn.cursor()
@@ -496,6 +506,215 @@ def test() -> Any:
         app.logger.error(f"Error in /test route: {e}")
         app.logger.error(traceback.format_exc())
         return jsonify({"error": "Could not load test entries", "details": f"{e}"}), 500
+
+#---------------------------------------
+# testing endpoint for mapping vehicles (/data1)
+#---------------------------------------
+def parse_timestamp(ts: str) -> datetime:
+    """Parse the timestamp from 'Fri, 28 Feb 2025 13:46:16 GMT' format"""
+    return datetime.strptime(ts, "%a, %d %b %Y %H:%M:%S %Z")
+
+@app.route("/data1", methods=["GET"])
+def data1() -> Any:
+    """
+    Endpoint to retrieve parking data with optional filters and proper entry/exit mapping.
+    """
+    try:
+        # Retrieve query parameters
+        start_date: Optional[str] = request.args.get("start_date")
+        end_date: Optional[str] = request.args.get("end_date")
+        license_prefix: Optional[str] = request.args.get("license_prefix")
+        categories: Optional[str] = request.args.get("categories")
+        colors: Optional[str] = request.args.get("colors")
+        gates: Optional[str] = request.args.get("gates")
+        search: Optional[str] = request.args.get("search")
+        page_size: int = int(request.args.get("page_size", 10))
+        page: int = int(request.args.get("page", 1))
+        offset: int = (page - 1) * page_size
+
+        # Enhanced query with proper entry/exit mapping using a CTE
+        query = """
+            WITH entries AS (
+                SELECT *
+                FROM parking
+                WHERE gate LIKE '%_in'
+                    AND (timestamp >= COALESCE(%s::timestamptz, timestamp))
+                    AND (timestamp <= COALESCE(%s::timestamptz, timestamp))
+                    AND (%s IS NULL OR license_plate ILIKE (%s || '%%'))
+                    AND (%s IS NULL OR category IN (SELECT UNNEST(string_to_array(%s, ',')) ))
+                    AND (%s IS NULL OR color IN (SELECT UNNEST(string_to_array(%s, ',')) ))
+                    AND (%s IS NULL OR gate IN (SELECT UNNEST(string_to_array(%s, ',')) ))
+                    AND (
+                        %s IS NULL OR
+                        license_plate ILIKE ('%%' || %s || '%%') OR
+                        category ILIKE ('%%' || %s || '%%') OR
+                        color ILIKE ('%%' || %s || '%%') OR
+                        gate ILIKE ('%%' || %s || '%%') OR
+                        zone ILIKE ('%%' || %s || '%%') OR
+                        description ILIKE ('%%' || %s || '%%')
+                    )
+            ),
+            exits AS (
+                SELECT *,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY license_plate 
+                           ORDER BY timestamp
+                       ) as exit_num
+                FROM parking
+                WHERE gate LIKE '%_out'
+            ),
+            matched_records AS (
+                SELECT 
+                    e.insertion_id AS entry_id,
+                    e.license_plate,
+                    e.category,
+                    e.color,
+                    e.timestamp AS entry_timestamp,
+                    e.gate AS entry_gate,
+                    e.zone,
+                    e.description,
+                    ex.insertion_id AS exit_id,
+                    ex.timestamp AS exit_timestamp,
+                    ex.gate AS exit_gate,
+                    EXTRACT(EPOCH FROM (ex.timestamp - e.timestamp)) AS duration,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY e.insertion_id 
+                        ORDER BY ex.timestamp
+                    ) as match_num
+                FROM entries e
+                LEFT JOIN exits ex
+                    ON e.license_plate = ex.license_plate
+                    AND ex.timestamp > e.timestamp
+                    AND ex.exit_num = 1
+            )
+            SELECT *
+            FROM matched_records
+            WHERE match_num = 1
+            ORDER BY entry_timestamp DESC
+            LIMIT %s
+            OFFSET %s;
+        """
+
+        # Prepare parameters for the main query (without pagination in count)
+        main_params = (
+            parse_timestamp(start_date) if start_date else None,
+            parse_timestamp(end_date) if end_date else None,
+            license_prefix, license_prefix,
+            categories, categories,
+            colors, colors,
+            gates, gates,
+            search, search, search, search, search, search, search,
+            page_size, offset
+        )
+
+        # Execute main query
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(query, main_params)
+        results = cur.fetchall()
+        
+        # For total count, reuse the same CTE without LIMIT/OFFSET
+        count_query = """
+            WITH entries AS (
+                SELECT *
+                FROM parking
+                WHERE gate LIKE '%_in'
+                    AND (timestamp >= COALESCE(%s::timestamptz, timestamp))
+                    AND (timestamp <= COALESCE(%s::timestamptz, timestamp))
+                    AND (%s IS NULL OR license_plate ILIKE (%s || '%%'))
+                    AND (%s IS NULL OR category IN (SELECT UNNEST(string_to_array(%s, ',')) ))
+                    AND (%s IS NULL OR color IN (SELECT UNNEST(string_to_array(%s, ',')) ))
+                    AND (%s IS NULL OR gate IN (SELECT UNNEST(string_to_array(%s, ',')) ))
+                    AND (
+                        %s IS NULL OR
+                        license_plate ILIKE ('%%' || %s || '%%') OR
+                        category ILIKE ('%%' || %s || '%%') OR
+                        color ILIKE ('%%' || %s || '%%') OR
+                        gate ILIKE ('%%' || %s || '%%') OR
+                        zone ILIKE ('%%' || %s || '%%') OR
+                        description ILIKE ('%%' || %s || '%%')
+                    )
+            ),
+            exits AS (
+                SELECT *,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY license_plate 
+                           ORDER BY timestamp
+                       ) as exit_num
+                FROM parking
+                WHERE gate LIKE '%_out'
+            ),
+            matched_records AS (
+                SELECT 
+                    e.insertion_id AS entry_id,
+                    e.license_plate,
+                    e.category,
+                    e.color,
+                    e.timestamp AS entry_timestamp,
+                    e.gate AS entry_gate,
+                    e.zone,
+                    e.description,
+                    ex.insertion_id AS exit_id,
+                    ex.timestamp AS exit_timestamp,
+                    ex.gate AS exit_gate,
+                    EXTRACT(EPOCH FROM (ex.timestamp - e.timestamp)) AS duration,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY e.insertion_id 
+                        ORDER BY ex.timestamp
+                    ) as match_num
+                FROM entries e
+                LEFT JOIN exits ex
+                    ON e.license_plate = ex.license_plate
+                    AND ex.timestamp > e.timestamp
+                    AND ex.exit_num = 1
+            )
+            SELECT COUNT(*) FROM matched_records WHERE match_num = 1;
+        """
+        # Parameters for count query (same as main, but without pagination)
+        count_params = (
+            parse_timestamp(start_date) if start_date else None,
+            parse_timestamp(end_date) if end_date else None,
+            license_prefix, license_prefix,
+            categories, categories,
+            colors, colors,
+            gates, gates,
+            search, search, search, search, search, search, search
+        )
+        cur.execute(count_query, count_params)
+        total_records = cur.fetchone()[0]
+        
+        cur.close()
+        conn.close()
+
+        # Format results
+        formatted_results = []
+        for row in results:
+            formatted_results.append({
+                "entry_id": row[0],
+                "license_plate": row[1],
+                "category": row[2],
+                "color": row[3],
+                "entry_timestamp": row[4].strftime("%a, %d %b %Y %H:%M:%S %Z"),
+                "entry_gate": row[5],
+                "zone": row[6],
+                "description": row[7],
+                "exit_id": row[8],
+                "exit_timestamp": row[9].strftime("%a, %d %b %Y %H:%M:%S %Z") if row[9] else None,
+                "exit_gate": row[10],
+                "duration": row[11]
+            })
+
+        return jsonify({
+            "data": formatted_results,
+            "total_pages": (total_records + page_size - 1) // page_size,
+            "current_page": page,
+            "total_records": total_records
+        })
+
+    except Exception as e:
+        app.logger.error(f"Error in /data1 endpoint: {e}")
+        app.logger.error(traceback.format_exc())
+        return jsonify({"error": "Could not load data", "details": str(e)}), 500
 
 # Start the app
 if __name__ == "__main__":

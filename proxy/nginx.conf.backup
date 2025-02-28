@@ -100,18 +100,6 @@ http {
 
     server {
         listen 32212;
-
-	# API requests on /api 
-    	location /api/ {
-		# Remove the /api prefix before proxying
-        	rewrite ^/api/(.*)$ /$1 break;
-        	proxy_pass http://endpoint:5001/;
-        	proxy_set_header Host $host;
-        	proxy_set_header X-Real-IP $remote_addr;
-        	proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-
-	#react app on /
         location / {
 		#proxy_pass http://frontend;
             proxy_pass http://172.17.0.1:3000; #temporarily for react testing on host, in production it will be on docker frontend

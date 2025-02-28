@@ -1,4 +1,6 @@
+pip
 Flask
 psycopg2-binary
 matplotlib
 python-dotenv
+flask-cors
