@@ -4,3 +4,6 @@ psycopg2-binary
 matplotlib
 python-dotenv
 flask-cors
+pandas
+openpyxl
+

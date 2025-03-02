@@ -1,0 +1,87 @@
+[
+  {
+    "id": 1,
+    "fileName": "1",
+    "format": ".csv",
+    "exportType": "Vehicle Filters",
+    "filters": {
+      "categories": [
+        "van"
+      ]
+    },
+    "recordCount": 752,
+    "user": "admin",
+    "timestamp": "2025-03-02T07:31:29.200Z"
+  },
+  {
+    "id": 2,
+    "fileName": "1",
+    "format": ".csv",
+    "exportType": "Full Database",
+    "filters": {},
+    "recordCount": 24312,
+    "user": "admin",
+    "timestamp": "2025-03-02T07:51:07.379Z"
+  },
+  {
+    "id": 3,
+    "fileName": "1",
+    "format": ".csv",
+    "exportType": "Date & Time",
+    "filters": {
+      "startDate": "2025-01-22",
+      "endDate": "2025-03-02"
+    },
+    "recordCount": 24345,
+    "user": "manager",
+    "timestamp": "2025-03-02T07:55:40.457Z"
+  },
+  {
+    "id": 4,
+    "fileName": "2",
+    "format": ".csv",
+    "exportType": "Vehicle Filters",
+    "filters": {
+      "categories": [
+        "tractor"
+      ]
+    },
+    "recordCount": 24,
+    "user": "manager",
+    "timestamp": "2025-03-02T07:57:09.545Z"
+  },
+  {
+    "id": 5,
+    "fileName": "2",
+    "format": ".xlsx",
+    "exportType": "Vehicle Filters",
+    "filters": {
+      "categories": [
+        "tractor"
+      ]
+    },
+    "recordCount": 24,
+    "user": "manager",
+    "timestamp": "2025-03-02T07:57:18.551Z"
+  },
+  {
+    "id": 6,
+    "fileName": "new",
+    "format": ".csv",
+    "exportType": "Full Database",
+    "filters": {},
+    "recordCount": 24473,
+    "user": "admin",
+    "timestamp": "2025-03-02T08:26:07.698Z"
+  },
+  {
+    "id": 7,
+    "fileName": "test_erik",
+    "format": ".csv",
+    "exportType": "Full Database",
+    "filters": {},
+    "recordCount": 24666,
+    "user": "admin",
+    "timestamp": "2025-03-02T09:06:37.523Z"
+  }
+]
