@@ -179,6 +179,12 @@ const ExportButton = styled(Button)({
     transform: "translateY(-2px)",
     boxShadow: "0px 8px 16px rgba(79, 70, 229, 0.2)",
   },
+  "&:disabled": {
+    background: "linear-gradient(135deg, #A1A1AA 0%, #D4D4D8 100%)",
+    color: "#FFFFFF",
+    transform: "none",
+    boxShadow: "none",
+  },
 });
 
 const StatValue = styled(Typography)({
@@ -195,18 +201,6 @@ const StatLabel = styled(Typography)({
   textTransform: "uppercase",
   letterSpacing: "0.05em",
 });
-
-const TrendIndicator = styled(Box)(({ trend }) => ({
-  display: "flex",
-  alignItems: "center",
-  gap: "4px",
-  padding: "4px 12px",
-  borderRadius: "20px",
-  fontSize: "14px",
-  backgroundColor: trend >= 0 ? "rgba(5, 150, 105, 0.1)" : "rgba(220, 38, 38, 0.1)",
-  color: trend >= 0 ? chartColors.status.success : chartColors.status.error,
-  fontWeight: 500,
-}));
 
 const ChartHeader = styled(Box)({
   display: "flex",
@@ -418,14 +412,8 @@ const pdfStyles = {
 };
 
 const AnalyticsReportPDF = React.forwardRef((props, ref) => {
-  const { stats, durationStats, percentageChanges, timeRange, dateRange, exportTime } = props;
+  const { stats, timeRange, dateRange, exportTime } = props;
   const categoryColors = ["#8884d8", "#82ca9d", "#ffc658", "#ff8042", "#0088fe", "#00c49f"];
-
-  const formatDuration = (seconds) => {
-    if (!seconds) return "0h";
-    const hours = (seconds / 3600).toFixed(2);
-    return `${hours}h`;
-  };
 
   const formatHour = (timestamp) => {
     const date = new Date(timestamp);
@@ -440,7 +428,7 @@ const AnalyticsReportPDF = React.forwardRef((props, ref) => {
 
   const processHeatmapData = () => {
     if (!stats.heatmap_data) return [];
-    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const counts = stats.heatmap_data.map(d => d.count);
     const maxCount = Math.max(...counts, 1);
     return days.map((day, dayIndex) => ({
@@ -466,7 +454,7 @@ const AnalyticsReportPDF = React.forwardRef((props, ref) => {
       <Box>
         <Typography style={pdfStyles.title}>Analytics Report</Typography>
         <Typography style={{ fontSize: "10pt", color: chartColors.text.secondary }}>
-          Period: {timeRange === "custom" 
+          Period: {timeRange === "custom"
             ? `${new Date(dateRange.startDate).toLocaleDateString()} - ${new Date(dateRange.endDate).toLocaleDateString()}`
             : timeRange.charAt(0).toUpperCase() + timeRange.slice(1)}
         </Typography>
@@ -481,45 +469,50 @@ const AnalyticsReportPDF = React.forwardRef((props, ref) => {
     </div>
   );
 
-  const renderStatBoxes = () => (
-    <div style={pdfStyles.section}>
-      <Typography style={pdfStyles.subtitle}>Key Statistics</Typography>
-      <Grid container spacing={2}>
-        <Grid item xs={4}>
-          <Box style={pdfStyles.statBox}>
-            <Typography style={{ fontSize: "10pt", color: chartColors.text.secondary }}>Total Events</Typography>
-            <Typography style={{ fontSize: "18pt", fontWeight: 700 }}>{stats.total_events?.toLocaleString() || 0}</Typography>
-          </Box>
+  const renderStatBoxes = () => {
+    const peakHour = Object.entries(stats.hourly_trend || {}).reduce((max, [hour, count]) =>
+      count > max[1] ? [hour, count] : max, ["N/A", 0]);
+    const formattedPeakTime = peakHour[0] !== "N/A" ? formatHour(parseInt(peakHour[0]) * 3600000).time : "N/A";
+
+    return (
+      <div style={pdfStyles.section}>
+        <Typography style={pdfStyles.subtitle}>Key Statistics</Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={4}>
+            <Box style={pdfStyles.statBox}>
+              <Typography style={{ fontSize: "10pt", color: chartColors.text.secondary }}>Total Events</Typography>
+              <Typography style={{ fontSize: "18pt", fontWeight: 700 }}>{stats.total_events?.toLocaleString() || 0}</Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={4}>
+            <Box style={pdfStyles.statBox}>
+              <Typography style={{ fontSize: "10pt", color: chartColors.text.secondary }}>Peak Traffic Hour</Typography>
+              <Typography style={{ fontSize: "18pt", fontWeight: 700 }}>{formattedPeakTime}</Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={4}>
+            <Box style={pdfStyles.statBox}>
+              <Typography style={{ fontSize: "10pt", color: chartColors.text.secondary }}>Most Used Gate</Typography>
+              <Typography style={{ fontSize: "18pt", fontWeight: 700 }}>
+                {stats.gate_usage ? Object.entries(stats.gate_usage).reduce((prev, curr) => (curr[1] > prev[1] ? curr : prev), ["N/A", 0])[0] : "N/A"}
+              </Typography>
+            </Box>
+          </Grid>
         </Grid>
-        <Grid item xs={4}>
-          <Box style={pdfStyles.statBox}>
-            <Typography style={{ fontSize: "10pt", color: chartColors.text.secondary }}>Average Duration</Typography>
-            <Typography style={{ fontSize: "18pt", fontWeight: 700 }}>{formatDuration(durationStats.average_duration)}</Typography>
-          </Box>
-        </Grid>
-        <Grid item xs={4}>
-          <Box style={pdfStyles.statBox}>
-            <Typography style={{ fontSize: "10pt", color: chartColors.text.secondary }}>Most Used Gate</Typography>
-            <Typography style={{ fontSize: "18pt", fontWeight: 700 }}>
-              {stats.gate_usage ? Object.entries(stats.gate_usage).reduce((prev, curr) => (curr[1] > prev[1] ? curr : prev), ["N/A", 0])[0] : "N/A"}
-            </Typography>
-          </Box>
-        </Grid>
-      </Grid>
-    </div>
-  );
+      </div>
+    );
+  };
 
   const renderVehicleCategories = () => (
     <div style={pdfStyles.section}>
       <Typography style={pdfStyles.subtitle}>Vehicle Categories</Typography>
-      <ResponsiveContainer width="100%" height={300}> {/* Increased height to 300px */}
+      <ResponsiveContainer width="100%" height={300}>
         <EnhancedPieChart
           data={Object.entries(stats.category_counts || {}).map(([name, value]) => ({
             id: name,
             label: name,
             value: typeof value === "number" ? value : 0,
           }))}
-          percentageChanges={percentageChanges}
         />
       </ResponsiveContainer>
     </div>
@@ -709,12 +702,6 @@ const formatHour = (timestamp) => {
   }
 };
 
-const formatDuration = (seconds) => {
-  if (!seconds) return "0h";
-  const hours = (seconds / 3600).toFixed(2);
-  return `${hours}h`;
-};
-
 const DatePickerContainer = styled(Box)({
   display: 'flex',
   alignItems: 'center',
@@ -752,11 +739,6 @@ const DateInput = styled(TextField)({
   }
 });
 
-const RangeSeparator = styled(Typography)({
-  color: chartColors.text.secondary,
-  fontWeight: 500
-});
-
 const AnalyticsDashboard = () => {
   const categoryColors = ["#8884d8", "#82ca9d", "#ffc658", "#ff8042", "#0088fe", "#00c49f"];
   const componentRef = useRef();
@@ -770,12 +752,7 @@ const AnalyticsDashboard = () => {
   });
   const [exportTime, setExportTime] = useState(null);
   const [percentageChanges, setPercentageChanges] = useState({});
-  const [durationStats, setDurationStats] = useState({
-    average_duration: 0,
-    previous_average: 0,
-    percentage_change: 0,
-    time_range: "today",
-  });
+  const [isExporting, setIsExporting] = useState(false);
 
   const handleDownloadPdf = async () => {
     if (!stats || Object.keys(stats).length === 0) {
@@ -783,6 +760,7 @@ const AnalyticsDashboard = () => {
       return;
     }
 
+    setIsExporting(true);
     setExportTime(new Date());
     const tempDiv = document.createElement("div");
     tempDiv.style.position = "absolute";
@@ -794,8 +772,6 @@ const AnalyticsDashboard = () => {
     root.render(
       <AnalyticsReportPDF
         stats={stats}
-        durationStats={durationStats}
-        percentageChanges={percentageChanges}
         timeRange={timeRange}
         dateRange={dateRange}
         exportTime={new Date()}
@@ -843,21 +819,49 @@ const AnalyticsDashboard = () => {
     pdf.save(`Analytics_Report_${new Date().toISOString().split('T')[0]}.pdf`);
     document.body.removeChild(tempDiv);
     root.unmount();
+    setIsExporting(false);
   };
 
   const fetchStats = async () => {
     setLoading(true);
     try {
       const params = {
-        time_range: timeRange === "custom" ? "custom" : timeRange,
-        start_date: timeRange === "custom" ? dateRange.startDate.toISOString() : undefined,
-        end_date: timeRange === "custom" ? dateRange.endDate.toISOString() : undefined,
+        time_range: timeRange,
       };
-      const response = await axios.get("http://localhost:8000/stats/enhanced-stats", { params });
+
+      const now = new Date();
+      let startDateObj, endDateObj;
+
+      if (timeRange === "custom") {
+        startDateObj = new Date(dateRange.startDate);
+        endDateObj = new Date(dateRange.endDate);
+        startDateObj.setUTCHours(0, 0, 0, 0);
+        endDateObj.setUTCHours(23, 59, 59, 999);
+      } else if (timeRange === "today") {
+        startDateObj = new Date(now);
+        startDateObj.setUTCHours(0, 0, 0, 0);  // Today midnight UTC
+        endDateObj = new Date(now);            // Current time UTC
+      } else if (timeRange === "week") {
+        startDateObj = new Date(now);
+        startDateObj.setUTCDate(now.getUTCDate() - now.getUTCDay());
+        startDateObj.setUTCHours(0, 0, 0, 0);
+        endDateObj = new Date(now);
+        endDateObj.setUTCHours(23, 59, 59, 999);
+      } else if (timeRange === "month") {
+        startDateObj = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+        endDateObj = new Date(now);
+        endDateObj.setUTCHours(23, 59, 59, 999);
+      }
+
+      if (startDateObj && endDateObj) {
+        params.start_date = startDateObj.toUTCString();
+        params.end_date = endDateObj.toUTCString();
+      }
+
+      console.log("Sending params to backend:", params);
+      const response = await axios.get("/api/stats/enhanced-stats", { params });
       setStats(response.data.stats);
       setPercentageChanges(response.data.percentage_changes);
-      const durationResponse = await axios.get("http://localhost:8000/stats/duration-stats", { params });
-      setDurationStats(durationResponse.data);
     } catch (error) {
       console.error("Error fetching stats:", error);
     }
@@ -870,44 +874,40 @@ const AnalyticsDashboard = () => {
 
   const mostUsedGate = stats.gate_usage ? Object.entries(stats.gate_usage).reduce((prev, curr) => (curr[1] > prev[1] ? curr : prev), ["N/A", 0])[0] : "N/A";
 
-  const renderStatBoxes = () => (
-    <Grid container spacing={3}>
-      <Grid item xs={12} sm={4}>
-        <StatCard>
-          <CardContent>
-            <StatLabel>Total Events</StatLabel>
-            <StatValue>{stats.total_events?.toLocaleString() || 0}</StatValue>
-          </CardContent>
-        </StatCard>
+  const renderStatBoxes = () => {
+    const peakHour = Object.entries(stats.hourly_trend || {}).reduce((max, [hour, count]) =>
+      count > max[1] ? [hour, count] : max, ["N/A", 0]);
+    const formattedPeakTime = peakHour[0] !== "N/A" ? formatHour(parseInt(peakHour[0]) * 3600000).time : "N/A";
+
+    return (
+      <Grid container spacing={3}>
+        <Grid item xs={12} sm={4}>
+          <StatCard>
+            <CardContent>
+              <StatLabel>Total Vehicles</StatLabel>
+              <StatValue>{stats.total_events?.toLocaleString() || 0}</StatValue>
+            </CardContent>
+          </StatCard>
+        </Grid>
+        <Grid item xs={12} sm={4}>
+          <StatCard>
+            <CardContent>
+              <StatLabel>Peak Traffic Hour</StatLabel>
+              <StatValue>{formattedPeakTime}</StatValue>
+            </CardContent>
+          </StatCard>
+        </Grid>
+        <Grid item xs={12} sm={4}>
+          <StatCard>
+            <CardContent>
+              <StatLabel>Most Used Gate</StatLabel>
+              <StatValue>{mostUsedGate}</StatValue>
+            </CardContent>
+          </StatCard>
+        </Grid>
       </Grid>
-      <Grid item xs={12} sm={4}>
-        <StatCard>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>Average Duration</Typography>
-            <Box sx={{ display: "flex", alignItems: "baseline", gap: 1, mb: 2 }}>
-              <Typography variant="h4">{formatDuration(durationStats.average_duration)}</Typography>
-              <Box sx={{ display: "flex", alignItems: "center", color: durationStats.percentage_change >= 0 ? "success.main" : "error.main" }}>
-                {durationStats.percentage_change >= 0 ? <TrendingUp /> : <TrendingDown />}
-                <Typography variant="body2">{Math.abs(durationStats.percentage_change)}%</Typography>
-              </Box>
-            </Box>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography variant="body2" color="text.secondary">{getPeriodLabel(timeRange)}: {formatDuration(durationStats.previous_average)}</Typography>
-              <Typography variant="body2" color="text.secondary">{timeRange.charAt(0).toUpperCase() + timeRange.slice(1)}</Typography>
-            </Box>
-          </CardContent>
-        </StatCard>
-      </Grid>
-      <Grid item xs={12} sm={4}>
-        <StatCard>
-          <CardContent>
-            <Typography variant="h6" color="textSecondary">Most Used Gate</Typography>
-            <Typography variant="h4">{mostUsedGate}</Typography>
-          </CardContent>
-        </StatCard>
-      </Grid>
-    </Grid>
-  );
+    );
+  };
 
   const renderCharts = () => (
     <>
@@ -999,7 +999,7 @@ const AnalyticsDashboard = () => {
       console.warn("No heatmap data available");
       return [];
     }
-    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const counts = stats.heatmap_data.map((d) => d.count);
     const maxCount = Math.max(...counts);
     return days.map((day, dayIndex) => ({
@@ -1265,8 +1265,12 @@ const AnalyticsDashboard = () => {
           </Box>
         )}
 
-        <ExportButton startIcon={<Download />} onClick={handleDownloadPdf}>
-          Export Report
+        <ExportButton
+          startIcon={isExporting ? <CircularProgress size={20} sx={{ color: "#FFFFFF" }} /> : <Download />}
+          onClick={handleDownloadPdf}
+          disabled={isExporting}
+        >
+          {isExporting ? "Exporting..." : "Export Report"}
         </ExportButton>
       </ControlsContainer>
 

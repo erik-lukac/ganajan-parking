@@ -83,5 +83,21 @@
     "recordCount": 24666,
     "user": "admin",
     "timestamp": "2025-03-02T09:06:37.523Z"
+  },
+  {
+    "id": 8,
+    "fileName": "Export",
+    "format": ".csv",
+    "exportType": "Vehicle Filters",
+    "filters": {
+      "categories": [
+        "tractor"
+      ],
+      "licensePrefix": [],
+      "colors": []
+    },
+    "recordCount": 24,
+    "user": "admin",
+    "timestamp": "2025-03-02T16:29:33.157Z"
   }
 ]

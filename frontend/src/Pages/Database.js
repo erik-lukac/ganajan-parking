@@ -1,11 +1,10 @@
-import React from "react";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import "../Styles/Database.css";
 import DateTime from "../Serivces/DateTime";
 import { parkingService } from "../Serivces/Data";
 import DatePicker from "react-datepicker";
-import 'react-datepicker/dist/react-datepicker.css';
-import "../Styles/datepicker.css"; // Your custom CSS file
+import "react-datepicker/dist/react-datepicker.css";
+import "../Styles/datepicker.css";
 
 import {
   IconRefresh,
@@ -29,7 +28,6 @@ function Database() {
   const [totalPages, setTotalPages] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
   const [showFiltersPopup, setShowFiltersPopup] = useState(false);
   const [licensePrefix, setLicensePrefix] = useState([]);
@@ -41,15 +39,38 @@ function Database() {
   const [categories, setCategories] = useState([]);
   const [colors, setColors] = useState([]);
   const [gates, setGates] = useState([]);
+
+  // Function to format date to UTC format: "Sat, 01 Mar 2025 13:02:55 UTC"
+  const formatToUTC = (date) => {
+    if (!date) return null;
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const day = days[date.getUTCDay()];
+    const dateNum = String(date.getUTCDate()).padStart(2, "0");
+    const month = months[date.getUTCMonth()];
+    const year = date.getUTCFullYear();
+    const hours = String(date.getUTCHours()).padStart(2, "0");
+    const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+    const seconds = String(date.getUTCSeconds()).padStart(2, "0");
+    return `${day}, ${dateNum} ${month} ${year} ${hours}:${minutes}:${seconds} UTC`;
+  };
+
   const fetchData = async () => {
     setIsLoading(true);
     try {
+      const formattedStartDate = formatToUTC(startDate);
+      const formattedEndDate = formatToUTC(endDate);
+
+      // Log the formatted timestamps being sent to the backend
+      console.log("Sending start_date:", formattedStartDate);
+      console.log("Sending end_date:", formattedEndDate);
+
       const result = await parkingService.getParkingData(
         currentPage,
         itemsPerPage,
         searchTerm,
-        startDate?.toISOString(),
-        endDate?.toISOString(),
+        formattedStartDate,
+        formattedEndDate,
         licensePrefix.join(","),
         categoryFilter.join(","),
         colorFilter.join(","),
@@ -126,9 +147,8 @@ function Database() {
     fetchData();
   };
 
-  // Updated formatDuration function to handle seconds
   const formatDuration = (seconds) => {
-    if (!seconds || seconds < 0) return 'N/A';
+    if (!seconds || seconds < 0) return "N/A";
 
     const days = Math.floor(seconds / (24 * 60 * 60));
     const hours = Math.floor((seconds % (24 * 60 * 60)) / (60 * 60));
@@ -136,28 +156,18 @@ function Database() {
     const remainingSeconds = Math.floor(seconds % 60);
 
     const parts = [];
-
-    if (days > 0) {
-      parts.push(`${days}d`);
-    }
-    if (hours > 0) {
-      parts.push(`${hours}h`);
-    }
-    if (minutes > 0) {
-      parts.push(`${minutes}m`);
-    }
-    if (remainingSeconds > 0 || parts.length === 0) {
-      parts.push(`${remainingSeconds}s`);
-    }
-
-    return parts.join(' ');
+    if (days > 0) parts.push(`${days}d`);
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0) parts.push(`${minutes}m`);
+    if (remainingSeconds > 0 || parts.length === 0) parts.push(`${remainingSeconds}s`);
+    return parts.join(" ");
   };
 
   return (
     <div className="main">
       <div className="heading">
         <div className="title">
-          <h1>Search Database</h1>
+          <h1>Search Vehicle by License Plate</h1>
         </div>
         <DateTime />
       </div>
@@ -182,17 +192,11 @@ function Database() {
           />
         </button>
 
-        <button className="action-button download-button">
-          <IconDownload className="button-icon" />
-        </button>
 
         <div className="calendar-wrapper">
           <button
             className="action-button calendar-button"
-            onClick={(e) => {
-              e.preventDefault();
-              setIsCalendarOpen(!isCalendarOpen);
-            }}
+            onClick={handleCalendarClick}
           >
             <IconCalendarWeek className="button-icon" />
             <span className="date-range-text">
@@ -205,8 +209,8 @@ function Database() {
           {isCalendarOpen && (
             <div className="calendar-popup">
               <div className="quick-select-container">
-                <button 
-                  className="quick-select-button" 
+                <button
+                  className="quick-select-button"
                   onClick={() => {
                     const end = new Date();
                     const start = new Date();
@@ -217,8 +221,8 @@ function Database() {
                 >
                   Today
                 </button>
-                <button 
-                  className="quick-select-button" 
+                <button
+                  className="quick-select-button"
                   onClick={() => {
                     const end = new Date();
                     const start = new Date();
@@ -230,8 +234,8 @@ function Database() {
                 >
                   Last 24 Hours
                 </button>
-                <button 
-                  className="quick-select-button" 
+                <button
+                  className="quick-select-button"
                   onClick={() => {
                     const end = new Date();
                     const start = new Date();
@@ -242,8 +246,8 @@ function Database() {
                 >
                   Last 7 Days
                 </button>
-                <button 
-                  className="quick-select-button" 
+                <button
+                  className="quick-select-button"
                   onClick={() => {
                     const end = new Date();
                     const start = new Date();
@@ -263,7 +267,6 @@ function Database() {
                     selected={startDate}
                     onChange={(date) => setStartDate(date)}
                     showTimeSelect
-                    showTimeSelectOnly={false}
                     timeIntervals={1}
                     timeFormat="HH:mm:ss"
                     dateFormat="MMM d, yyyy HH:mm:ss"
@@ -280,7 +283,6 @@ function Database() {
                     selected={endDate}
                     onChange={(date) => setEndDate(date)}
                     showTimeSelect
-                    showTimeSelectOnly={false}
                     timeIntervals={1}
                     timeFormat="HH:mm:ss"
                     dateFormat="MMM d, yyyy HH:mm:ss"
@@ -295,8 +297,8 @@ function Database() {
               </div>
 
               <div className="datepicker-buttons">
-                <button 
-                  className="datepicker-button button-clear" 
+                <button
+                  className="datepicker-button button-clear"
                   onClick={() => {
                     setStartDate(null);
                     setEndDate(null);
@@ -305,11 +307,11 @@ function Database() {
                 >
                   Clear
                 </button>
-                <button 
-                  className="datepicker-button button-apply" 
+                <button
+                  className="datepicker-button button-apply"
                   onClick={() => {
                     if (startDate && endDate && startDate > endDate) {
-                      alert('Start date cannot be after end date');
+                      alert("Start date cannot be after end date");
                       return;
                     }
                     setIsCalendarOpen(false);
@@ -331,12 +333,10 @@ function Database() {
         </button>
       </div>
 
-      {/* Filters Popup */}
       {showFiltersPopup && (
         <div className="filters-popup">
           <div className="filters-content">
             <div className="filter-sections">
-              {/* License Plate Section */}
               <div className="filter-group">
                 <label>License Plate</label>
                 <div className="checkbox-group">
@@ -349,7 +349,9 @@ function Database() {
                           if (e.target.checked) {
                             setLicensePrefix([...licensePrefix, license]);
                           } else {
-                            setLicensePrefix(licensePrefix.filter(l => l !== license));
+                            setLicensePrefix(
+                              licensePrefix.filter((l) => l !== license)
+                            );
                           }
                         }}
                       />
@@ -359,7 +361,6 @@ function Database() {
                 </div>
               </div>
 
-              {/* Category Section */}
               <div className="filter-group">
                 <label>Category</label>
                 <div className="checkbox-group">
@@ -384,7 +385,6 @@ function Database() {
                 </div>
               </div>
 
-              {/* Color Section */}
               <div className="filter-group">
                 <label>Color</label>
                 <div className="checkbox-group">
@@ -409,7 +409,6 @@ function Database() {
                 </div>
               </div>
 
-              {/* Gate Section */}
               <div className="filter-group">
                 <label>Gate</label>
                 <div className="checkbox-group">
@@ -467,21 +466,6 @@ function Database() {
             <option value={100}>100</option>
           </select>
         </div>
-        {/* <div className="pagination">
-        <button
-          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-          disabled={currentPage === 1}
-        >
-          <IconChevronLeft/>
-        </button>
-        <span>Page {currentPage} of {totalPages}</span>
-        <button
-          onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-          disabled={currentPage === totalPages}
-        >
-          <IconChevronRight/>
-        </button>
-      </div> */}
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
@@ -493,16 +477,13 @@ function Database() {
         <table className="vehicle-table">
           <thead>
             <tr>
-              <th>Insertion Id</th>
               <th>License Plate</th>
               <th>Category</th>
               <th>Colour</th>
               <th>Entry</th>
               <th>Entry Gate</th>
-              <th>Exit </th>
+              <th>Exit</th>
               <th>Exit Gate</th>
-              <th>Zone</th>
-              <th>Description</th>
               <th>Duration</th>
             </tr>
           </thead>
@@ -514,25 +495,17 @@ function Database() {
             ) : (
               data.map((item) => (
                 <tr key={item.insertion_id}>
-                  <td>{item.insertion_id}</td>
                   <td>{item.license_plate}</td>
                   <td>{item.category}</td>
                   <td>{item.color}</td>
-                  <td>
-                    {item.entry_timestamp
-                      ? new Date(item.entry_timestamp).toLocaleString()
-                      : "N/A"}
-                  </td>
+                  <td>{item.entry_time || "N/A"}</td>
                   <td>{item.entry_gate || "N/A"}</td>
                   <td>
-                  {item.exit_timestamp ? 
-                      new Date(item.exit_timestamp).toLocaleString() : 
-                      'Not exited'
-                    }
+                    {item.exit_time && item.exit_time !== "Not Exited"
+                      ? item.exit_time
+                      : "Not exited"}
                   </td>
                   <td>{item.exit_gate || "N/A"}</td>
-                  <td>{item.zone}</td>
-                  <td>{item.description}</td>
                   <td>{formatDuration(item.duration)}</td>
                 </tr>
               ))

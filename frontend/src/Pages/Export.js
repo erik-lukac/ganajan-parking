@@ -18,15 +18,14 @@ const Export = () => {
   const [categories, setCategories] = useState([]);
   const [colors, setColors] = useState([]);
   const [gates, setGates] = useState([]);
+  const [items, setItems] = useState([]);
 
-  const [items,setItem]=useState([])
-
-  useEffect(()=>{
-    const items=JSON.parse(localStorage.getItem('auth'));
-    if (items){
-      setItem(items)
+  useEffect(() => {
+    const authItems = JSON.parse(localStorage.getItem('auth'));
+    if (authItems) {
+      setItems(authItems);
     }
-  },[]);
+  }, []);
 
   console.log(items);
 
@@ -34,13 +33,13 @@ const Export = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await axios.get('http://localhost:8000/data', {
+      const response = await axios.get('/api/data1', {
         params: {
           ...convertFiltersToParams(filterOptions),
           page: 1,
-          page_size: 1,  // Request only 1 record since we only care about total count
-          export_type: exportTab,  // Add export type to params
-          search: filterOptions.search || ''  // Add search filter if exists
+          page_size: 1,
+          export_type: exportTab,
+          search: filterOptions.search || '',
         },
       });
       setRecordCount(response.data.total_records || 0);
@@ -55,15 +54,23 @@ const Export = () => {
 
   const convertFiltersToParams = (filters) => {
     const params = {};
-    if (filters.startDate) params.start_date = filters.startDate;
-    if (filters.endDate) params.end_date = filters.endDate;
-    if (filters.categories?.length) params.category = filters.categories.join(',');
-    if (filters.colors?.length) params.color = filters.colors.join(',');
-    if (filters.gates?.length) params.gate = filters.gates.join(',');
+    
+    if (filters.startDate) {
+      const start = new Date(`${filters.startDate}T00:00:00Z`);
+      params.start_date = start.toUTCString(); // e.g., "Sun, 02 Mar 2025 00:00:00 GMT"
+      console.log(params.start_date);
+    }
+    if (filters.endDate) {
+      const end = new Date(`${filters.endDate}T23:59:59Z`);
+      params.end_date = end.toUTCString(); // e.g., "Sun, 02 Mar 2025 23:59:59 GMT"
+    }
+    if (filters.categories?.length) params.categories = filters.categories.join(',');
+    if (filters.colors?.length) params.colors = filters.colors.join(',');
+    if (filters.gates?.length) params.gates = filters.gates.join(',');
     if (filters.licensePrefix?.length) params.license_prefix = filters.licensePrefix.join(',');
+    
     return params;
   };
-
   useEffect(() => {
     fetchRecordCount();
     fetchExportLogs();
@@ -72,7 +79,7 @@ const Export = () => {
 
   const fetchExportLogs = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/export-logs');
+      const response = await axios.get('/api/export-logs');
       setExportLogs(response.data);
     } catch (error) {
       console.error('Error fetching export logs:', error);
@@ -82,16 +89,15 @@ const Export = () => {
   const fetchFilterOptions = async () => {
     try {
       const [cats, cols, gts] = await Promise.all([
-        axios.get('http://localhost:8000/categories'),
-        axios.get('http://localhost:8000/colors'),
-        axios.get('http://localhost:8000/gates')
+        axios.get('/api/filters/categories'),
+        axios.get('/api/filters/colors'),
+        axios.get('/api/filters/gates'),
       ]);
-      
-      setCategories(cats.data.categories || cats.data); 
+      setCategories(cats.data.categories || cats.data);
       setColors(cols.data.colors || cols.data);
       setGates(gts.data.gates || gts.data);
     } catch (error) {
-      console.error("Error fetching filter options:", error);
+      console.error('Error fetching filter options:', error);
     }
   };
 
@@ -99,48 +105,51 @@ const Export = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await axios.get('http://localhost:8000/export', {
+      const exportResponse = await axios.get('/api/export', {
         params: {
           ...convertFiltersToParams(filterOptions),
           file_format: fileFormat.replace('.', ''),
           export_type: exportTab,
-          file_name: fileName
+          file_name: fileName || `export_${new Date().toISOString().replace(/[:.]/g, '-')}`,
         },
         responseType: 'blob',
       });
-
-      const blob = new Blob([response.data], {
+  
+      const blob = new Blob([exportResponse.data], {
         type:
           fileFormat === '.csv'
             ? 'text/csv'
             : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       });
-
+  
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${fileName}${fileFormat}`;
+      link.download = `${fileName || 'export'}${fileFormat}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-
-      const authData = JSON.parse(localStorage.getItem('auth'));
-      if (!authData?.username) {
-        console.error('No user logged in');
-        return;
+  
+      // Log export separately
+      try {
+        const authData = JSON.parse(localStorage.getItem('auth'));
+        const logResponse = await axios.post('/api/log-export', {
+          fileName: fileName || 'export',
+          format: fileFormat,
+          exportType: exportTab,
+          filters: filterOptions,
+          recordCount,
+          user: authData?.username || 'Unknown',
+          timestamp: new Date().toISOString(), // Include timestamp for sorting
+        });
+        console.log('Log response:', logResponse.data); // Debug log response
+        fetchExportLogs(); // Refresh logs after successful log entry
+      } catch (logError) {
+        console.error('Logging export failed:', logError);
+        setError('Export succeeded, but failed to log the export.');
       }
-
-      await axios.post('http://localhost:8000/log-export', {
-        fileName,
-        format: fileFormat,
-        exportType: exportTab,
-        filters: filterOptions,
-        recordCount,
-        user: authData.username
-      });
-
-      fetchExportLogs();
+  
       setIsModalOpen(false);
     } catch (error) {
       console.error('Export failed:', error);
@@ -152,14 +161,15 @@ const Export = () => {
 
   const handleLogDownload = async (log) => {
     try {
-      const response = await axios.get(`http://localhost:8000/download-export/${log.id}`, {
-        responseType: 'blob'
+      const response = await axios.get(`/api/download-export/${log.id}`, {
+        responseType: 'blob',
       });
 
       const blob = new Blob([response.data], {
-        type: log.format === '.csv' 
-          ? 'text/csv'
-          : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        type:
+          log.format === '.csv'
+            ? 'text/csv'
+            : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       });
 
       const url = window.URL.createObjectURL(blob);
@@ -203,7 +213,7 @@ const Export = () => {
       case 'Vehicle Filters':
         return (
           <div className="tab-content">
-            <button 
+            <button
               className="select-filters-button"
               onClick={() => setShowFiltersModal(true)}
             >
@@ -296,9 +306,11 @@ const Export = () => {
                         {log.exportType === 'Vehicle Filters' && (
                           <>
                             {log.filters.licensePrefix?.length > 0 && (
-                              <span>Licenses: {Array.isArray(log.filters.licensePrefix) 
-                                ? log.filters.licensePrefix.join(', ') 
-                                : log.filters.licensePrefix}</span>
+                              <span>
+                                Licenses: {Array.isArray(log.filters.licensePrefix)
+                                  ? log.filters.licensePrefix.join(', ')
+                                  : log.filters.licensePrefix}
+                              </span>
                             )}
                             {log.filters.categories?.length > 0 && (
                               <span>Categories: {log.filters.categories.join(', ')}</span>
@@ -319,15 +331,7 @@ const Export = () => {
                       </div>
                     )}
                   </td>
-                  <td>{items.username || 'System'}</td>
-                  {/* <td>
-                    <button 
-                      className="download-button"
-                      onClick={() => handleLogDownload(log)}
-                    >
-                      <IconDownload size={18} />
-                    </button>
-                  </td> */}
+                  <td>{log.user || 'System'}</td>
                 </tr>
               ))}
             </tbody>
@@ -403,8 +407,8 @@ const Export = () => {
           <div className="filters-modal">
             <div className="filters-modal-header">
               <h2>Select Filters</h2>
-              <button 
-                className="close-button" 
+              <button
+                className="close-button"
                 onClick={() => setShowFiltersModal(false)}
               >
                 ✕
@@ -422,14 +426,14 @@ const Export = () => {
                         onChange={(e) => {
                           const updatedPrefixes = filterOptions.licensePrefix || [];
                           if (e.target.checked) {
-                            setFilterOptions(prev => ({
+                            setFilterOptions((prev) => ({
                               ...prev,
-                              licensePrefix: [...updatedPrefixes, license]
+                              licensePrefix: [...updatedPrefixes, license],
                             }));
                           } else {
-                            setFilterOptions(prev => ({
+                            setFilterOptions((prev) => ({
                               ...prev,
-                              licensePrefix: updatedPrefixes.filter(l => l !== license)
+                              licensePrefix: updatedPrefixes.filter((l) => l !== license),
                             }));
                           }
                         }}
@@ -451,14 +455,14 @@ const Export = () => {
                         onChange={(e) => {
                           const updatedCategories = filterOptions.categories || [];
                           if (e.target.checked) {
-                            setFilterOptions(prev => ({
+                            setFilterOptions((prev) => ({
                               ...prev,
-                              categories: [...updatedCategories, category]
+                              categories: [...updatedCategories, category],
                             }));
                           } else {
-                            setFilterOptions(prev => ({
+                            setFilterOptions((prev) => ({
                               ...prev,
-                              categories: updatedCategories.filter(c => c !== category)
+                              categories: updatedCategories.filter((c) => c !== category),
                             }));
                           }
                         }}
@@ -480,14 +484,14 @@ const Export = () => {
                         onChange={(e) => {
                           const updatedColors = filterOptions.colors || [];
                           if (e.target.checked) {
-                            setFilterOptions(prev => ({
+                            setFilterOptions((prev) => ({
                               ...prev,
-                              colors: [...updatedColors, color]
+                              colors: [...updatedColors, color],
                             }));
                           } else {
-                            setFilterOptions(prev => ({
+                            setFilterOptions((prev) => ({
                               ...prev,
-                              colors: updatedColors.filter(c => c !== color)
+                              colors: updatedColors.filter((c) => c !== color),
                             }));
                           }
                         }}
@@ -509,14 +513,14 @@ const Export = () => {
                         onChange={(e) => {
                           const updatedGates = filterOptions.gates || [];
                           if (e.target.checked) {
-                            setFilterOptions(prev => ({
+                            setFilterOptions((prev) => ({
                               ...prev,
-                              gates: [...updatedGates, gate]
+                              gates: [...updatedGates, gate],
                             }));
                           } else {
-                            setFilterOptions(prev => ({
+                            setFilterOptions((prev) => ({
                               ...prev,
-                              gates: updatedGates.filter(g => g !== gate)
+                              gates: updatedGates.filter((g) => g !== gate),
                             }));
                           }
                         }}
@@ -528,13 +532,13 @@ const Export = () => {
               </div>
             </div>
             <div className="filters-modal-footer">
-              <button 
+              <button
                 className="cancel-button"
                 onClick={() => setShowFiltersModal(false)}
               >
                 Cancel
               </button>
-              <button 
+              <button
                 className="export-button"
                 onClick={() => setShowFiltersModal(false)}
               >

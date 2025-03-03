@@ -1,6 +1,5 @@
 // services/parkingService.js
 
-const BASE_URL = "http://localhost:8000";
 
 class ParkingService {
   // Fetch parking data with pagination and search
@@ -28,7 +27,7 @@ class ParkingService {
         ...(gateFilter && { gate: gateFilter }),
       });
 
-      const response = await fetch(`${BASE_URL}/data?${queryParams}`);
+      const response = await fetch(`/api/data1?${queryParams}`);
       if (!response.ok)
         throw new Error(`HTTP error! status: ${response.status}`);
       return await response.json();
@@ -52,7 +51,7 @@ class ParkingService {
         ...(searchTerm && { search: searchTerm }),
       });
 
-      const response = await fetch(`${BASE_URL}/dashboard/data?${queryParams}`);
+      const response = await fetch(`/api/dashboard/data?${queryParams}`);
       if (!response.ok)
         throw new Error(`HTTP error! status: ${response.status}`);
       return await response.json();
@@ -65,7 +64,7 @@ class ParkingService {
   // Get specific parking record by ID
   async getParkingRecordById(id) {
     try {
-      const response = await fetch(`${BASE_URL}/data/${id}`);
+      const response = await fetch(`/api/data/${id}`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -81,7 +80,7 @@ class ParkingService {
   // Get parking statistics
   async getParkingStats() {
     try {
-      const response = await fetch(`${BASE_URL}/stats`);
+      const response = await fetch(`/api/stats`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -131,26 +130,26 @@ class ParkingService {
   }
 
   async getCategories() {
-    const response = await fetch(`${BASE_URL}/filters/categories`);
+    const response = await fetch(`/api/filters/categories`);
     const result = await response.json();
     return result.categories;
   }
 
   async getColors() {
-    const response = await fetch(`${BASE_URL}/filters/colors`);
+    const response = await fetch(`/api/filters/colors`);
     const result = await response.json();
     return result.colors;
   }
 
   async getGates() {
-    const response = await fetch(`${BASE_URL}/filters/gates`);
+    const response = await fetch(`/api/filters/gates`);
     const result = await response.json();
     return result.gates;
   }
 
   async getTodayEntries() {
     try {
-      const response = await fetch(`${BASE_URL}/stats/today-entries`);
+      const response = await fetch(`/api/stats/today-entries`);
       if (!response.ok)
         throw new Error(`HTTP error! status: ${response.status}`);
       return await response.json();
@@ -162,7 +161,7 @@ class ParkingService {
 
   async getTodayExits() {
     try {
-      const response = await fetch(`${BASE_URL}/stats/today-exits`);
+      const response = await fetch(`/api/stats/today-exits`);
       if (!response.ok)
         throw new Error(`HTTP error! status: ${response.status}`);
       return await response.json();
@@ -174,7 +173,7 @@ class ParkingService {
 
   async getTrends() {
     try {
-      const response = await fetch(`${BASE_URL}/stats/trends`);
+      const response = await fetch(`/api/stats/trends`);
       if (!response.ok)
         throw new Error(`HTTP error! status: ${response.status}`);
       return await response.json();
